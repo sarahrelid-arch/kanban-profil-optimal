@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanban — Étapes détaillées RACI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161a22;
+    --paper:#faf6ee;
+    --line: rgba(250,246,238,0.12);
+    --text-dim: rgba(250,246,238,0.55);
+    --text-mid: rgba(250,246,238,0.78);
+    --gold:#d9a441;
+
+    --s1:#4f8a8b; --s2:#c9762c; --s3:#7a6ff0; --s4:#c14953;
+
+    --m1:#4f8a8b; --m2:#7a6ff0; --m3:#c9762c; --m4:#d9a441; --m5:#c14953;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, #1c2330 0%, transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, #202838 0%, transparent 55%),
+      var(--ink);
+    color: var(--paper);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+  }
+  .wrap{ max-width:1500px; margin:0 auto; padding: 28px 28px 60px; }
+
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    gap:24px; flex-wrap:wrap;
+    padding-bottom:20px; margin-bottom:22px;
+    border-bottom:1px solid var(--line);
+  }
+  .title-block .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color: var(--gold); margin-bottom:8px;
+  }
+  h1{
+    font-family:'Fraunces', serif; font-weight:600; font-size:clamp(26px,3.2vw,40px);
+    margin:0; line-height:1.05; color:var(--paper);
+  }
+  .sub{ color:var(--text-dim); font-size:13.5px; margin-top:8px; max-width:620px; }
+  .stamp{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-mid);
+    border:1px solid var(--line); border-radius:3px; padding:10px 14px;
+    background: rgba(0,0,0,0.18);
+    display:flex; flex-direction:column; gap:4px; min-width:220px;
+  }
+  .stamp b{ color:var(--paper); font-weight:600; }
+
+  .controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:22px; }
+  .filter-group{ display:flex; gap:6px; flex-wrap:wrap; }
+  .fg-label{
+    font-family:'IBM Plex Mono', monospace; font-size:9.5px; text-transform:uppercase;
+    letter-spacing:.08em; color:var(--text-dim); align-self:center; margin-right:2px;
+  }
+  .chip{
+    font-family:'IBM Plex Mono', monospace; font-size:11px;
+    border:1px solid var(--line); background:transparent; color:var(--text-mid);
+    padding:6px 12px; border-radius:20px; cursor:pointer; transition: all .15s ease;
+  }
+  .chip:hover{ border-color: var(--gold); color:var(--paper); }
+  .chip.active{ background:var(--gold); color:#1a1200; border-color:var(--gold); font-weight:600; }
+  .reset-btn{
+    margin-left:auto; font-family:'IBM Plex Mono', monospace; font-size:11px;
+    background:none; border:1px solid var(--line); color:var(--text-dim);
+    padding:6px 12px; border-radius:20px; cursor:pointer;
+  }
+  .reset-btn:hover{ color:var(--paper); border-color:var(--paper); }
+
+  .progress-row{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:26px; }
+  .sprint-card{ border:1px solid var(--line); border-radius:6px; padding:12px 14px; background: rgba(255,255,255,0.03); }
+  .sprint-card .sp-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+  .sprint-card .sp-name{ font-family:'Fraunces', serif; font-size:14px; font-weight:600; }
+  .sprint-card .sp-dates{ font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--text-dim); }
+  .bar-track{ height:6px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden; }
+  .bar-fill{ height:100%; background:linear-gradient(90deg, var(--gold), #f0c877); transition:width .3s ease; }
+  .sp-count{ font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--text-dim); margin-top:6px; }
+  .sp-livrable{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; color:var(--text-mid); margin-top:6px; line-height:1.4; }
+
+  .board{ display:grid; grid-template-columns:repeat(4,minmax(280px,1fr)); gap:16px; }
+  .col{ background: rgba(255,255,255,0.025); border:1px solid var(--line); border-radius:8px; display:flex; flex-direction:column; min-height:200px; }
+  .col-head{ padding:14px 16px 12px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
+  .col-head .name{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; }
+  .col-head .count{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-dim); border:1px solid var(--line); border-radius:10px; padding:2px 9px; }
+  .col-body{ padding:12px; display:flex; flex-direction:column; gap:9px; flex:1; min-height:120px; max-height:78vh; overflow-y:auto; }
+  .col-body.drag-over{ background: rgba(217,164,65,0.08); }
+
+  .card{
+    background: var(--paper); color:#20180a; border-radius:5px; padding:11px 12px 10px;
+    cursor:grab; box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 6px 14px rgba(0,0,0,0.28);
+    border-left:5px solid var(--s1); transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .card:active{ cursor:grabbing; }
+  .card:hover{ transform: translateY(-2px); box-shadow:0 3px 0 rgba(0,0,0,0.2), 0 10px 20px rgba(0,0,0,0.35); }
+  .card.dragging{ opacity:0.4; }
+
+  .card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:5px; }
+  .card-id{ font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:600; color: rgba(32,24,10,0.55); background: rgba(0,0,0,0.06); padding:2px 6px; border-radius:3px; }
+  .card-sprint{ font-family:'IBM Plex Mono', monospace; font-size:9px; color:rgba(32,24,10,0.45); }
+  .card-title{ font-size:12.6px; line-height:1.35; font-weight:500; margin-bottom:7px; }
+  .card-bloc{ font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:rgba(32,24,10,0.55); margin-bottom:8px; }
+
+  .card-owner-row{ display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+  .owner-dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .owner-select{
+    font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:600;
+    color:#20180a; background:rgba(0,0,0,0.045); border:1px solid rgba(32,24,10,0.15);
+    border-radius:4px; padding:3px 6px; cursor:pointer; flex:1; min-width:0;
+    appearance:none; -webkit-appearance:none;
+  }
+  .owner-select:hover{ border-color:rgba(32,24,10,0.35); }
+  .owner-select:focus{ outline:none; border-color:var(--gold); }
+  .co-owner{ font-family:'IBM Plex Mono', monospace; font-size:8.5px; color:rgba(32,24,10,0.5); margin: 1px 0 7px 13px; }
+
+  .card-livrable{
+    font-size:10px; color:rgba(32,24,10,0.62); line-height:1.35;
+    padding-top:7px; border-top:1px dashed rgba(32,24,10,0.18);
+    font-style:italic;
+  }
+  .card-livrable b{ font-style:normal; font-weight:600; color:rgba(32,24,10,0.8); }
+
+  .empty-hint{ color:var(--text-dim); font-size:12px; text-align:center; padding:20px 8px; font-family:'IBM Plex Mono', monospace; }
+  footer{ margin-top:26px; font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--text-dim); text-align:center; }
+
+  @media (max-width: 1100px){ .board{ grid-template-columns:1fr 1fr; } .progress-row{ grid-template-columns:repeat(3,1fr); } }
+  @media (max-width: 620px){ .board{ grid-template-columns:1fr; } .progress-row{ grid-template-columns:1fr 1fr; } }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title-block">
+      <div class="eyebrow">Groupe 11 — ESCP · BUILD</div>
+      <h1>Kanban — Étapes détaillées (RACI)</h1>
+      <div class="sub">102 étapes atomiques · 25 blocs techniques · Hors Sprint (Bridge/transverse) + 4 sprints (03/08 → 30/08/2026). Ouvrable par toute l'équipe, sans compte Claude — les mises à jour se synchronisent en direct entre tous ceux qui ont le fichier ouvert.</div>
+    </div>
+    <div class="stamp">
+      <div id="syncStatus"><b>Connexion</b> ⏳ Connexion à Firebase...</div>
+      <div><b>Source</b> Détail des tâches - Étapes (V3)</div>
+      <div><b>Granularité</b> Étape atomique par bloc</div>
+      <div><b>Jalon Sprint 3</b> CV final PDF</div>
+    </div>
+  </header>
+
+  <div class="progress-row" id="progressRow"></div>
+
+  <div class="controls">
+    <span class="fg-label">Sprint</span>
+    <div class="filter-group" id="sprintFilters"></div>
+    <span class="fg-label">Responsable</span>
+    <div class="filter-group" id="ownerFilters"></div>
+    <button class="reset-btn" id="resetBtn">Réinitialiser filtres</button>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <footer>Synchronisation en direct (Firebase) — tout déplacement de carte par un membre de l'équipe est visible en temps réel par les autres · Source « Sprint 1-4 » : onglet « Détail des tâches - Étapes » · Source « Hors Sprint » : onglet « BUILD Profil Optimal » (RACI, tâches Avant Sprint 1 et transverses)</footer>
+</div>
+
+<script>
+const STATUSES = ["À faire","En cours","En revue","Terminé"];
+
+const SPRINT_DATES = {
+  "Hors Sprint":"Bridge / transverse",
+  "Sprint 1":"03/08 – 09/08",
+  "Sprint 2":"10/08 – 16/08",
+  "Sprint 3":"17/08 – 23/08",
+  "Sprint 4":"24/08 – 30/08",
+};
+const SPRINT_COLOR = { "Hors Sprint":"#6b7280", "Sprint 1":"var(--s1)", "Sprint 2":"var(--s2)", "Sprint 3":"var(--s3)", "Sprint 4":"var(--s4)" };
+const SPRINT_LIVRABLE = {
+  "Hors Sprint":"Cadrage, gouvernance, RGPD et outils projet mis en place avant le Sprint 1 ; sélection de stack et protocole ATS encore à exécuter en continu.",
+  "Sprint 1":"CV Source et offre disponibles, isolés, consultables et traçables. Aucun CV final PDF n'est attendu à ce stade.",
+  "Sprint 2":"Analyse offre-profil, réponses de clarification et contenu contextualisé du CV explicitement validés, traçables et prêts pour la mise en forme.",
+  "Sprint 3":"CV final d'une page exporté en PDF et message de candidature.",
+  "Sprint 4":"V0 fonctionnellement complète, tests et preuves consolidés.",
+};
+
+const TEAM = {
+  "Mathieu Chaussée": "var(--m1)",
+  "Serge Brouh Yapo": "var(--m2)",
+  "Giuseppe Manes":   "var(--m3)",
+  "Sarah Relid":      "var(--m4)",
+  "Clément Mages":    "var(--m5)",
+};
+const TEAM_NAMES = Object.keys(TEAM);
+
+// Blocs : métadonnées communes à toutes les étapes du bloc
+const BLOCS = {
+  HSCAD:  { sprint:"Hors Sprint", nom:"Cadrage du problème métier",          us:"Bridge",  owner:"Sarah Relid",    livrable:"Note de cadrage simplifiée validée (avec intégration du feedback Alara).", defaultStatus:"Terminé" },
+  HSORG:  { sprint:"Hors Sprint", nom:"Organisation et outils du projet",    us:"Bridge",  owner:"Sarah Relid",    livrable:"Drive, Gmail commun, WhatsApp, calendrier et rituels (point hebdo, atelier, morning meeting) opérationnels.", defaultStatus:"Terminé" },
+  HSROAD: { sprint:"Hors Sprint", nom:"Roadmap fonctionnelle V0",            us:"Bridge",  owner:"Sarah Relid",    livrable:"Roadmap fonctionnelle Profil Optimal (F0-01 à F0-06 + éléments hors V0 identifiés).", defaultStatus:"Terminé" },
+  HSDOC:  { sprint:"Hors Sprint", nom:"Rédaction des documents de cadrage",  us:"Bridge",  owner:"Clément Mages",  co:"Sarah Relid", livrable:"Note de cadrage détaillée V7 et IA Business Case finale (20260801-VF) validées collectivement le 01/08/2026.", defaultStatus:"Terminé" },
+  HSPLAN: { sprint:"Hors Sprint", nom:"Planning et RACI",                    us:"Transverse", owner:"Sarah Relid", livrable:"Planning macro, backlog V3 et RACI détaillé validés ; suivi opérationnel des écarts en continu.", defaultStatus:"Terminé" },
+  HSRGPD: { sprint:"Hors Sprint", nom:"Corpus et Pack RGPD",                 us:"Bridge/Understand", owner:"Clément Mages", co:"Giuseppe Manes", livrable:"Pack RGPD V5 validé collectivement (31/07/2026) ; registre du corpus des 5 CV minimisés.", defaultStatus:"Terminé" },
+  HSSTACK:{ sprint:"Hors Sprint", nom:"Sélection de la stack technique",     us:"Transverse — Q52", owner:"Serge Brouh Yapo", co:"Giuseppe Manes", livrable:"Stack technique effective sélectionnée, testée et documentée (Q52) ; outils validés avant tout envoi de données réelles.", defaultStatus:"À faire" },
+  HSATS:  { sprint:"Hors Sprint", nom:"Protocole ATS et critères qualité",   us:"Transverse — Q48/Q49", owner:"Clément Mages", livrable:"Protocole de test ATS limité exécuté et documenté (Q49) ; critères de qualité de la lettre testés (Q48).", defaultStatus:"À faire" },
+
+  IE:   { sprint:"Sprint 1", nom:"Import et extraction",              us:"US1.2, US2.1",              owner:"Mathieu Chaussée", livrable:"Faits extraits structurés et vérifiables ; l'offre ne devient pas une source du parcours." },
+  CIS:  { sprint:"Sprint 1", nom:"Consentement, isolation, statuts",   us:"US1.1, US1.3, US1.7, US7.1", owner:"Giuseppe Manes",   livrable:"Pack RGPD inchangé ; aucune donnée réelle traitée avant contrôle du consentement et des accès." },
+  CT:   { sprint:"Sprint 1", nom:"Consultation et test",               us:"US1.4",                       owner:"Serge Brouh Yapo", co:"équipe", livrable:"Socle exécutable ; aucun blocage critique non documenté." },
+
+  AOP:  { sprint:"Sprint 2", nom:"Analyse offre–profil",                us:"US2.2, US2.3",               owner:"Mathieu Chaussée", livrable:"Correspondances, écarts, objections et angle proposé, appuyés sur des sources autorisées, datées et identifiables." },
+  CG:   { sprint:"Sprint 2", nom:"Clarification et génération",        us:"US3.1, US4.1",               owner:"Mathieu Chaussée", livrable:"Contenu contextualisé généré, sans invention de motivation ni d'information personnelle." },
+  PV:   { sprint:"Sprint 2", nom:"Prévisualisation et validation",     us:"US4.2, US4.4",               owner:"Serge Brouh Yapo", livrable:"Validation explicite de l'utilisateur enregistrée." },
+  CTRL: { sprint:"Sprint 2", nom:"Contrôle",                            us:"US1.5",                       owner:"Giuseppe Manes",   co:"Serge Brouh Yapo", livrable:"Contenu prêt pour mise en forme." },
+
+  ROB:  { sprint:"Sprint 3", nom:"Robustesse",                          us:"US1.6, US3.2",               owner:"Giuseppe Manes",   co:"Serge Brouh Yapo", livrable:"Décision finale systématiquement laissée à l'utilisateur." },
+  AUP:  { sprint:"Sprint 3", nom:"Arbitrage une page",                  us:"US4.3, US6.2",               owner:"Serge Brouh Yapo", livrable:"Sélection finale validée par l'utilisateur." },
+  TE:   { sprint:"Sprint 3", nom:"Template et export",                  us:"US6.1, US6.5",               owner:"Serge Brouh Yapo", livrable:"Une page A4 ; aucune perte de contenu." },
+  QUAL: { sprint:"Sprint 3", nom:"Qualité",                             us:"US6.3",                       owner:"Giuseppe Manes",   co:"Serge Brouh Yapo", livrable:"PDF lisible et non image." },
+  MSG:  { sprint:"Sprint 3", nom:"Message",                             us:"US5.1",                       owner:"Mathieu Chaussée", co:"équipe", livrable:"Cohérence du message avec le CV et l'offre." },
+
+  QLP:  { sprint:"Sprint 4", nom:"Questions, lettre et pitches",        us:"US3.3, US5.2, US5.3",        owner:"Mathieu Chaussée", co:"Serge Brouh Yapo", livrable:"Hypothèse Q45 distinguée des règles validées." },
+  CAR:  { sprint:"Sprint 4", nom:"Cohérence, ATS et RGPD",              us:"US5.4, US6.4, US7.2",        owner:"Giuseppe Manes",   livrable:"Limites et preuves documentées." },
+  TM:   { sprint:"Sprint 4", nom:"Tests et mesures",                    us:"US8.1",                       owner:"Serge Brouh Yapo", co:"équipe", livrable:"Résultats cas par cas et écarts tracés." },
+  CNG:  { sprint:"Sprint 4", nom:"Corrections et no-go",                us:"US8.2",                       owner:"Clément Mages",    co:"Sarah Relid", livrable:"Aucune réduction silencieuse de la V0." },
+  DOC:  { sprint:"Sprint 4", nom:"Documentation",                       us:"US8.3",                       owner:"Clément Mages",    co:"Sarah Relid", livrable:"Faits, propositions et questions ouvertes distingués." },
+};
+
+// Étapes atomiques : [blocKey, n° étape, texte]
+const STEPS_RAW = [
+ ["HSCAD",1,"Partager les données initiales du projet et clarifier l'idée initiale."],
+ ["HSCAD",2,"Exprimer et reformuler la problématique métier en une phrase simple, en distinguant problème réel et solution imaginée."],
+ ["HSCAD",3,"Identifier le sponsor du projet et clarifier son rôle exact."],
+
+ ["HSORG",1,"Créer le Drive projet, gérer les droits et sa structuration."],
+ ["HSORG",2,"Créer le compte Gmail commun et le groupe WhatsApp du projet."],
+ ["HSORG",3,"Planifier les réunions récurrentes (point hebdo, atelier, morning meeting)."],
+ ["HSORG",4,"Clarifier une organisation et des pratiques projet communes (méthode, rituels, outils collaboratifs)."],
+
+ ["HSROAD",1,"Définir la cible principale et le périmètre de la V0."],
+ ["HSROAD",2,"Créer le tableau de roadmap fonctionnelle."],
+ ["HSROAD",3,"Identifier les éléments hors périmètre V0 (F01 à F18 reportés en V1-V13)."],
+
+ ["HSDOC",1,"Rédiger la note de cadrage simplifiée."],
+ ["HSDOC",2,"Rédiger la note de cadrage détaillée et l'IA Business Case."],
+ ["HSDOC",3,"Mettre à jour la partie RGPD de la note de cadrage détaillée à partir du Pack RGPD V5."],
+ ["HSDOC",4,"Valider collectivement le cadrage final (01/08/2026)."],
+
+ ["HSPLAN",1,"Finaliser le planning opérationnel détaillé (responsables, dépendances, jalons, dates ajustées et validations ESCP)."],
+ ["HSPLAN",2,"Mettre en place l'outil de suivi de planning et du statut de chaque document."],
+ ["HSPLAN",3,"Documenter les décisions structurantes et identifier les responsables des phases BUILD."],
+ ["HSPLAN",4,"Arbitrer le périmètre exact du Sprint 1 (Q50) et aligner Business Case, POC, Definition of Done et planning."],
+
+ ["HSRGPD",1,"Analyser les cinq CV du corpus V0 et identifier les données de tiers à minimiser."],
+ ["HSRGPD",2,"Contrôler et minimiser les cinq CV avant leur envoi dans un outil."],
+ ["HSRGPD",3,"Créer et renseigner le document d'analyse d'impact (dix risques identifiés)."],
+ ["HSRGPD",4,"Soumettre le Pack RGPD V5 finalisé à validation collective."],
+
+ ["HSSTACK",1,"Sélectionner, tester et documenter les briques techniques après preuve de faisabilité (Q52)."],
+ ["HSSTACK",2,"Faire valider les outils techniques (Drive, Docs, Sheets, fournisseur IA) avant tout envoi de données réelles."],
+
+ ["HSATS",1,"Exécuter et documenter les tests d'extractabilité, de couverture sémantique et de fidélité du CV (Q49)."],
+ ["HSATS",2,"Tester les critères de qualité de la lettre de motivation sur les sorties du prototype (Q48)."],
+
+ ["IE",1,"Importer le CV Source et vérifier la lisibilité du contenu. (US1.2)"],
+ ["IE",2,"Importer l'offre d'emploi ciblée et le contexte associé (entreprise, poste). (US2.1)"],
+ ["IE",3,"Extraire les faits du CV Source vers une structure de données contrôlable, sans reformulation ni ajout. (US1.2)"],
+ ["IE",4,"Vérifier que l'offre reste une donnée de comparaison et n'alimente jamais le contenu du parcours candidat. (US2.1)"],
+ ["IE",5,"Documenter les faits extraits non couverts ou ambigus, pour arbitrage ultérieur."],
+
+ ["CIS",1,"Présenter à l'utilisateur l'usage prévu de ses données avant tout traitement. (US1.1)"],
+ ["CIS",2,"Recueillir et enregistrer le consentement explicite de l'utilisateur. (US1.1)"],
+ ["CIS",3,"Vérifier les droits d'accès et l'isolation des données par utilisateur. (US1.7)"],
+ ["CIS",4,"Afficher les statuts minimaux (importé / extrait / validé) sur chaque donnée. (US1.3)"],
+ ["CIS",5,"Conserver la traçabilité de l'origine de chaque information (CV Source vs offre). (US7.1)"],
+
+ ["CT",1,"Afficher les informations extraites à l'utilisateur pour relecture. (US1.4)"],
+ ["CT",2,"Exécuter un test de bout en bout du socle (import → extraction → consultation)."],
+ ["CT",3,"Identifier les blocages critiques rencontrés lors du test."],
+ ["CT",4,"Corriger les blocages critiques identifiés."],
+ ["CT",5,"Revalider le parcours après correction."],
+
+ ["AOP",1,"Analyser l'offre et le profil de l'entreprise à partir des sources autorisées."],
+ ["AOP",2,"Identifier les correspondances entre le profil du candidat et les exigences de l'offre. (US2.2)"],
+ ["AOP",3,"Identifier les écarts et les objections potentielles. (US2.3)"],
+ ["AOP",4,"Proposer un angle de candidature, sans recourir à un score artificiel. (US2.2)"],
+ ["AOP",5,"Dater et identifier chaque source utilisée dans l'analyse."],
+
+ ["CG",1,"Identifier les zones d'ambiguïté ou d'information manquante nécessitant une clarification. (US3.1)"],
+ ["CG",2,"Poser à l'utilisateur les questions de clarification utiles, de façon limitée et contextualisée. (US3.1)"],
+ ["CG",3,"Générer un contenu de CV structuré à partir des réponses et des faits validés, sans invention. (US4.1)"],
+ ["CG",4,"Vérifier qu'aucune motivation ni information personnelle n'a été inventée. (US4.1)"],
+
+ ["PV",1,"Prévisualiser le contenu généré auprès de l'utilisateur. (US4.2)"],
+ ["PV",2,"Permettre la correction manuelle du contenu avant mise en forme. (US4.2)"],
+ ["PV",3,"Permettre le refus ou le challenge d'un élément généré. (US4.2)"],
+ ["PV",4,"Enregistrer la validation explicite de l'utilisateur sur le contenu final. (US4.4)"],
+
+ ["CTRL",1,"Vérifier la fidélité du contenu généré par rapport au CV Source."],
+ ["CTRL",2,"Permettre la correction, le refus ou la validation locale d'une information, sans modifier le CV Source. (US1.5)"],
+ ["CTRL",3,"Vérifier l'absence d'invention ou de sur-interprétation."],
+ ["CTRL",4,"Tester le parcours complet jusqu'au contenu validé."],
+
+ ["ROB",1,"Identifier les contradictions potentielles dans les données ou les réponses. (US1.6)"],
+ ["ROB",2,"Présenter les contradictions à l'utilisateur, sans arbitrage automatique. (US1.6)"],
+ ["ROB",3,"Gérer les cas d'interruption et de reprise du dialogue de clarification. (US3.2)"],
+ ["ROB",4,"Gérer les réponses tardives de l'utilisateur. (US3.2)"],
+ ["ROB",5,"Laisser la décision finale à l'utilisateur dans tous les cas."],
+
+ ["AUP",1,"Détecter le débordement du contenu au-delà d'une page. (US6.2)"],
+ ["AUP",2,"Revenir à la sélection des éléments avec l'utilisateur en cas de débordement. (US4.3)"],
+ ["AUP",3,"Proposer les options de réduction/synthèse, sans suppression silencieuse. (US4.3)"],
+ ["AUP",4,"Enregistrer la sélection finale validée par l'utilisateur."],
+
+ ["TE",1,"Mapper le contenu validé dans le template unique défini. (US6.1)"],
+ ["TE",2,"Vérifier le respect de la structure du template (nom → mots-clés → contact → expériences → etc.). (US6.1)"],
+ ["TE",3,"Générer l'export PDF à partir du template rempli. (US6.5)"],
+ ["TE",4,"Vérifier que le PDF tient sur une page A4, sans perte de contenu. (US6.5)"],
+
+ ["QUAL",1,"Contrôler la fidélité du PDF final par rapport au contenu validé. (US6.3)"],
+ ["QUAL",2,"Contrôler la traçabilité des informations dans le PDF. (US6.3)"],
+ ["QUAL",3,"Contrôler la cohérence globale du document. (US6.3)"],
+ ["QUAL",4,"Vérifier l'extractabilité minimale du texte (PDF non image, lisible par un outil ATS). (US6.3)"],
+
+ ["MSG",1,"Produire le message ou courrier de candidature associé au CV. (US5.1)"],
+ ["MSG",2,"Vérifier la cohérence du message avec le CV final et l'offre. (US5.1)"],
+ ["MSG",3,"Tester le cas nominal (parcours standard sans incident) de bout en bout."],
+
+ ["QLP",1,"Tester le socle minimal de questions systématiques sur plusieurs cas. (US3.3)"],
+ ["QLP",2,"Produire la lettre de motivation conditionnelle, courte et pertinente. (US5.2)"],
+ ["QLP",3,"Produire le pitch synthétique et le pitch déroulé. (US5.3)"],
+ ["QLP",4,"Distinguer explicitement l'hypothèse Q45 des règles déjà validées."],
+
+ ["CAR",1,"Contrôler la cohérence entre tous les livrables produits (CV, message, lettre, pitches). (US5.4)"],
+ ["CAR",2,"Exécuter le protocole limité de lisibilité technique (ATS) sur le(s) PDF générés. (US6.4)"],
+ ["CAR",3,"Tester l'export des données utilisateur. (US7.2)"],
+ ["CAR",4,"Tester la suppression des données et le remplacement du CV Source actif par nouvel import. (US7.2)"],
+ ["CAR",5,"Documenter les limites constatées et les preuves associées."],
+
+ ["TM",1,"Exécuter les scénarios de test T01 à T05 avec les 5 membres. (US8.1)"],
+ ["TM",2,"Chronométrer l'exécution de chaque scénario."],
+ ["TM",3,"Recueillir le double regard (second évaluateur) sur les résultats."],
+ ["TM",4,"Calculer les KPI définis pour la V0."],
+ ["TM",5,"Tracer les résultats et les écarts, cas par cas."],
+
+ ["CNG",1,"Identifier les prompts et workflows à corriger suite aux tests. (US8.2)"],
+ ["CNG",2,"Appliquer les corrections identifiées. (US8.2)"],
+ ["CNG",3,"Retester les cas concernés après correction."],
+ ["CNG",4,"Appliquer les critères bloquants (no-go) le cas échéant, sans réduction silencieuse de la V0."],
+
+ ["DOC",1,"Consolider les résultats de tests et de mesures. (US8.3)"],
+ ["DOC",2,"Documenter les limites identifiées. (US8.3)"],
+ ["DOC",3,"Documenter la stack technique effectivement utilisée."],
+ ["DOC",4,"Documenter la conformité RGPD constatée."],
+ ["DOC",5,"Préparer le support de démonstration."],
+ ["DOC",6,"Distinguer explicitement faits, propositions et questions ouvertes dans la documentation."],
+];
+
+const CARDS = STEPS_RAW.map(([blocKey, n, texte]) => {
+  const b = BLOCS[blocKey];
+  return {
+    id: blocKey + "-" + n,
+    bloc: blocKey,
+    blocNom: b.nom,
+    sprint: b.sprint,
+    us: b.us,
+    owner: b.owner,
+    co: b.co || null,
+    livrable: b.livrable,
+    defaultStatus: b.defaultStatus || "À faire",
+    n: n,
+    texte: texte,
+  };
+});
+
+let state = {}; // id -> {status, owner}
+let filters = { sprint: null, owner: null };
+
+// --- Connexion Firebase ---
+const firebaseConfig = {
+  apiKey: "AIzaSyD3C6IGo3Hjthuc-Ak-MCIqm9Kzyg178e0",
+  authDomain: "profil-optimal.firebaseapp.com",
+  projectId: "profil-optimal",
+  storageBucket: "profil-optimal.firebasestorage.app",
+  messagingSenderId: "79898365187",
+  appId: "1:79898365187:web:9763ebe56ab08da26c6d36"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const docRef = db.collection("kanban").doc("etat");
+
+let isFirstLoad = true;
+let isLocalWrite = false; // évite de re-render inutilement pendant nos propres écritures
+
+function ensureDefaults(){
+  CARDS.forEach(c => {
+    if(!state[c.id]) state[c.id] = { status: c.defaultStatus, owner: c.owner };
+    if(!state[c.id].status) state[c.id].status = c.defaultStatus;
+    if(!state[c.id].owner) state[c.id].owner = c.owner;
+  });
+}
+
+async function loadState(){
+  return new Promise((resolve) => {
+    docRef.onSnapshot((snap) => {
+      const statusEl = document.getElementById("syncStatus");
+      if(statusEl) statusEl.innerHTML = "<b>Connexion</b> ✅ Connecté — synchronisation en direct";
+      const needsInit = !snap.exists || !snap.data().cards;
+      if(!needsInit){
+        state = snap.data().cards;
+      } else {
+        state = {};
+      }
+      ensureDefaults();
+      if(isFirstLoad){
+        isFirstLoad = false;
+        resolve();
+        if(needsInit){
+          saveState(); // écrit tout de suite l'état initial dans Firebase, visible immédiatement dans la console
+        }
+      } else if(!isLocalWrite){
+        render(); // mise à jour en direct quand un autre membre modifie une carte
+      }
+      isLocalWrite = false;
+    }, (err) => {
+      console.error("Erreur Firebase (lecture)", err);
+      const statusEl = document.getElementById("syncStatus");
+      if(statusEl) statusEl.innerHTML = "<b>Connexion</b> ❌ Erreur — voir console (F12)";
+      if(isFirstLoad){ ensureDefaults(); isFirstLoad = false; resolve(); }
+    });
+  });
+}
+
+async function saveState(){
+  try{
+    isLocalWrite = true;
+    await docRef.set({ cards: state, misAJourLe: new Date().toISOString() }, { merge: false });
+  }catch(e){ console.error("Erreur de sauvegarde Firebase", e); }
+}
+
+function buildFilters(){
+  const sprintDiv = document.getElementById("sprintFilters");
+  const ownerDiv = document.getElementById("ownerFilters");
+  Object.keys(SPRINT_DATES).forEach(sp=>{
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = sp;
+    b.onclick = ()=>{ filters.sprint = filters.sprint===sp ? null : sp; render(); };
+    b.dataset.sprint = sp;
+    sprintDiv.appendChild(b);
+  });
+  TEAM_NAMES.forEach(name=>{
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = name.split(" ")[0]; b.title = name;
+    b.onclick = ()=>{ filters.owner = filters.owner===name ? null : name; render(); };
+    b.dataset.owner = name;
+    ownerDiv.appendChild(b);
+  });
+  document.getElementById("resetBtn").onclick = ()=>{ filters={sprint:null,owner:null}; render(); };
+}
+
+function syncFilterButtons(){
+  document.querySelectorAll("[data-sprint]").forEach(b=> b.classList.toggle("active", filters.sprint===b.dataset.sprint));
+  document.querySelectorAll("[data-owner]").forEach(b=> b.classList.toggle("active", filters.owner===b.dataset.owner));
+}
+
+function filteredCards(){
+  return CARDS.filter(c=>{
+    if(filters.sprint && c.sprint!==filters.sprint) return false;
+    if(filters.owner && (state[c.id]?.owner || c.owner)!==filters.owner) return false;
+    return true;
+  });
+}
+
+function renderProgress(){
+  const row = document.getElementById("progressRow");
+  row.innerHTML = "";
+  Object.keys(SPRINT_DATES).forEach(sp=>{
+    const cardsInSprint = CARDS.filter(c=>c.sprint===sp);
+    const done = cardsInSprint.filter(c=>state[c.id]?.status==="Terminé").length;
+    const pct = cardsInSprint.length ? Math.round(done/cardsInSprint.length*100) : 0;
+    const div = document.createElement("div");
+    div.className = "sprint-card";
+    div.innerHTML = `
+      <div class="sp-head">
+        <span class="sp-name">${sp}</span>
+        <span class="sp-dates">${SPRINT_DATES[sp]}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${pct===100?'linear-gradient(90deg,#6fbf7a,#8fd99a)':'linear-gradient(90deg, var(--gold), #f0c877)'}"></div></div>
+      <div class="sp-count">${done}/${cardsInSprint.length} étapes terminées · ${pct}%</div>
+      <div class="sp-livrable"><b>Livrable :</b> ${SPRINT_LIVRABLE[sp]}</div>
+    `;
+    row.appendChild(div);
+  });
+}
+
+function makeCard(c){
+  const el = document.createElement("div");
+  el.className = "card";
+  el.draggable = true;
+  el.dataset.id = c.id;
+  el.style.borderLeftColor = SPRINT_COLOR[c.sprint];
+
+  const currentOwner = state[c.id]?.owner || c.owner;
+  const optionsHtml = TEAM_NAMES.map(name =>
+    `<option value="${name}" ${name===currentOwner ? "selected" : ""}>${name}</option>`
+  ).join("");
+
+  el.innerHTML = `
+    <div class="card-top">
+      <span class="card-id">${c.id}</span>
+      <span class="card-sprint">${c.sprint.replace("Sprint ","S")}</span>
+    </div>
+    <div class="card-bloc">${c.blocNom} · ${c.us}</div>
+    <div class="card-title">${c.texte}</div>
+    <div class="card-owner-row">
+      <span class="owner-dot" style="background:${TEAM[currentOwner] || "var(--m1)"}"></span>
+      <select class="owner-select" title="Responsable — modifiable">${optionsHtml}</select>
+    </div>
+    ${c.co ? `<div class="co-owner">+ ${c.co}</div>` : ""}
+    <div class="card-livrable"><b>Livrable attendu (bloc) :</b> ${c.livrable}</div>
+  `;
+  el.addEventListener("dragstart", e=>{ el.classList.add("dragging"); e.dataTransfer.setData("text/plain", c.id); });
+  el.addEventListener("dragend", ()=> el.classList.remove("dragging"));
+
+  const select = el.querySelector(".owner-select");
+  select.addEventListener("click", e => e.stopPropagation());
+  select.addEventListener("mousedown", e => e.stopPropagation());
+  select.addEventListener("change", async e => {
+    const newOwner = e.target.value;
+    state[c.id].owner = newOwner;
+    el.querySelector(".owner-dot").style.background = TEAM[newOwner] || "var(--m1)";
+    await saveState();
+    if(filters.owner) render();
+  });
+
+  return el;
+}
+
+function render(){
+  syncFilterButtons();
+  renderProgress();
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  const cards = filteredCards();
+
+  STATUSES.forEach(status=>{
+    const col = document.createElement("div");
+    col.className = "col";
+    const colCards = cards.filter(c => state[c.id]?.status === status);
+    col.innerHTML = `
+      <div class="col-head"><span class="name">${status}</span><span class="count">${colCards.length}</span></div>
+      <div class="col-body" data-status="${status}"></div>
+    `;
+    const body = col.querySelector(".col-body");
+    if(colCards.length === 0){
+      const hint = document.createElement("div");
+      hint.className = "empty-hint"; hint.textContent = "— aucune carte —";
+      body.appendChild(hint);
+    } else {
+      colCards.forEach(c => body.appendChild(makeCard(c)));
+    }
+    body.addEventListener("dragover", e=>{ e.preventDefault(); body.classList.add("drag-over"); });
+    body.addEventListener("dragleave", ()=> body.classList.remove("drag-over"));
+    body.addEventListener("drop", async e=>{
+      e.preventDefault();
+      body.classList.remove("drag-over");
+      const id = e.dataTransfer.getData("text/plain");
+      if(id){ state[id].status = status; await saveState(); render(); }
+    });
+    board.appendChild(col);
+  });
+}
+
+(async function init(){
+  buildFilters();
+  await loadState();
+  render();
+})();
+</script>
+</body>
+</html>
