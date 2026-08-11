@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profil Optimal — Connexion &amp; Parcours</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-950:#0E1A2E;
+    --navy-800:#182A45;
+    --navy-700:#223760;
+    --parchment:#EFEAE0;
+    --parchment-dim:#E3DDCF;
+    --amber:#C08A2E;
+    --amber-dim:#9C7226;
+    --ink:#1B1D1F;
+    --slate:#5B6472;
+    --ok:#3D7A55;
+    --err:#B3432B;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    color:var(--ink);
+    background:var(--navy-950);
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{ min-height:100vh; display:flex; }
+  #view-login{ width:100%; min-height:100vh; display:grid; grid-template-columns: 1.05fr 1fr; }
+  @media (max-width: 860px){
+    #view-login{ grid-template-columns: 1fr; }
+    .brand-panel{ min-height:260px; }
+  }
+  .brand-panel{
+    background:
+      radial-gradient(circle at 15% 20%, rgba(192,138,46,0.16), transparent 45%),
+      linear-gradient(160deg, var(--navy-950), var(--navy-800) 65%, var(--navy-700));
+    color:var(--parchment);
+    padding:56px 52px;
+    display:flex; flex-direction:column; justify-content:space-between;
+    position:relative; overflow:hidden;
+  }
+  .brand-eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--amber); opacity:.9; }
+  .brand-title{ font-family:'Fraunces', serif; font-weight:500; font-size:clamp(34px, 4.4vw, 54px); line-height:1.05; margin:18px 0 14px; letter-spacing:-0.01em; }
+  .brand-title em{ font-style:italic; color:var(--amber); }
+  .brand-sub{ max-width:420px; color:#C9CFDA; font-size:15px; line-height:1.55; }
+  .path-wrap{ margin-top:40px; }
+  .path-caption{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.08em; color:#8C97AC; margin-top:10px; }
+  .brand-footer{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:#7C879C; letter-spacing:.03em; display:flex; gap:10px; align-items:center; }
+  .brand-footer .dot{ width:5px;height:5px;border-radius:50%;background:var(--amber); }
+  .form-panel{ background:var(--parchment); display:flex; align-items:center; justify-content:center; padding:48px 32px; }
+  .form-card{ width:100%; max-width:460px; }
+  .form-card h2{ font-family:'Fraunces', serif; font-weight:500; font-size:26px; margin:0 0 6px; color:var(--ink); }
+  .form-hint{ font-size:13.5px; color:var(--slate); margin:0 0 26px; }
+  .user-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:22px; }
+  @media (max-width:520px){ .user-grid{ grid-template-columns:repeat(2, 1fr);} }
+  .user-badge{ background:#fff; border:1.5px solid #DDD5C4; border-radius:12px; padding:14px 10px 12px; cursor:pointer; text-align:center; transition:border-color .15s ease, transform .15s ease, box-shadow .15s ease; position:relative; }
+  .user-badge:hover{ border-color:var(--amber); transform:translateY(-2px); box-shadow:0 6px 16px rgba(27,29,31,0.08); }
+  .user-badge:focus-visible, .icon-btn:focus-visible, .primary-btn:focus-visible, input:focus-visible, select:focus-visible{ outline:2.5px solid var(--amber); outline-offset:2px; }
+  .user-badge.selected{ border-color:var(--amber-dim); background:#FBF6EC; box-shadow:0 0 0 1.5px var(--amber-dim) inset; }
+  .user-badge .tri{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:15px; letter-spacing:.03em; color:var(--navy-800); background:var(--parchment-dim); border-radius:8px; width:44px;height:44px; display:flex;align-items:center;justify-content:center; margin:0 auto 8px; }
+  .user-badge.is-admin .tri{ background:var(--navy-800); color:var(--parchment); }
+  .user-badge .full-name{ font-size:12.5px; font-weight:500; line-height:1.25; color:var(--ink); }
+  .user-badge .role-tag{ display:block; margin-top:3px; font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--amber-dim); }
+  .auth-panel{ border-top:1px solid #DDD5C4; padding-top:20px; display:none; }
+  .auth-panel.open{ display:block; }
+  .auth-panel .who{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .auth-panel .who .tri-sm{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:12px; background:var(--navy-800); color:var(--parchment); padding:4px 8px; border-radius:6px; }
+  .auth-panel .who .name{ font-weight:500; font-size:14.5px; }
+  .auth-panel .mode-label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--slate); margin-bottom:14px; }
+  label.field-label{ display:block; font-size:12.5px; font-weight:500; color:var(--slate); margin-bottom:6px; }
+  input[type="password"]{ width:100%; padding:11px 13px; border:1.5px solid #D8D0BE; border-radius:9px; font-family:'IBM Plex Mono', monospace; font-size:14px; background:#fff; margin-bottom:12px; }
+  .rules{ font-size:11.5px; color:var(--slate); margin:-4px 0 14px; padding-left:18px; }
+  .rules li{ margin-bottom:2px; }
+  .rules li.ok{ color:var(--ok); }
+  .primary-btn{ width:100%; background:var(--navy-800); color:var(--parchment); border:none; padding:12.5px 16px; border-radius:9px; font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:14px; cursor:pointer; transition:background .15s ease; }
+  .primary-btn:hover{ background:var(--navy-700); }
+  .primary-btn:disabled{ background:#B7BDC7; cursor:not-allowed; }
+  .msg{ font-size:12.5px; border-radius:8px; padding:9px 11px; margin-bottom:12px; display:none; }
+  .msg.show{ display:block; }
+  .msg.error{ background:#FBEAE4; color:var(--err); }
+  .msg.success{ background:#E7F1EA; color:var(--ok); }
+  .crypto-note{ display:flex; gap:8px; align-items:flex-start; font-size:11px; color:var(--slate); margin-top:16px; line-height:1.5; }
+  .crypto-note svg{ flex:none; margin-top:1px; }
+  .reset-demo{ margin-top:18px; text-align:center; }
+  .reset-demo button{ background:none;border:none; font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:#A79E8C; text-decoration:underline; cursor:pointer; }
+
+  #view-app{ display:none; width:100%; min-height:100vh; background:var(--parchment); }
+  #view-app.open{ display:flex; }
+
+  .app-sidebar{
+    width:236px; flex:none; min-height:100vh;
+    background:linear-gradient(180deg, var(--navy-950), var(--navy-800) 85%);
+    color:var(--parchment); display:flex; flex-direction:column;
+    padding:26px 18px; position:sticky; top:0; height:100vh;
+  }
+  .sidebar-logo{ font-family:'Fraunces', serif; font-size:19px; letter-spacing:-0.01em; padding:0 8px; margin-bottom:8px; }
+  .sidebar-logo em{ color:var(--amber); font-style:italic; }
+  .sidebar-eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#8C97AC; padding:0 8px 26px; }
+  .sidebar-nav{ display:flex; flex-direction:column; gap:4px; flex:1; }
+  .sidebar-nav button{
+    display:flex; align-items:center; gap:10px; background:transparent; border:none;
+    color:#AEB7C4; font-family:'IBM Plex Sans', sans-serif; font-size:13.5px; font-weight:500;
+    padding:11px 12px; border-radius:9px; cursor:pointer; text-align:left; width:100%;
+  }
+  .sidebar-nav button:hover{ background:#152238; color:var(--parchment); }
+  .sidebar-nav button.active{ background:var(--amber); color:var(--navy-950); }
+  .sidebar-nav button svg{ flex:none; }
+
+  .sidebar-admin{ margin:14px 0; background:#152238; border:1.5px solid #2C3E5E; border-radius:9px; padding:10px 12px; }
+  .sidebar-admin label{ display:block; font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:#8C97AC; margin-bottom:6px; }
+  .sidebar-admin select{ width:100%; background:transparent; color:var(--parchment); border:none; font-family:'IBM Plex Mono', monospace; font-size:12px; font-weight:600; cursor:pointer; }
+  .sidebar-admin select option{ color:var(--ink); }
+
+  .sidebar-user{ border-top:1px solid #2C3E5E; padding-top:16px; margin-top:8px; }
+  .sidebar-user .who-row{ display:flex; align-items:center; gap:9px; margin-bottom:12px; }
+  .sidebar-user .tri-chip{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:11.5px; background:var(--amber); color:var(--navy-950); padding:4px 8px; border-radius:6px; flex:none; }
+  .sidebar-user .nm{ font-size:13px; font-weight:500; line-height:1.25; }
+  .sidebar-user .rl{ font-size:10px; color:#8C97AC; font-family:'IBM Plex Mono', monospace; letter-spacing:.05em; text-transform:uppercase; }
+  .icon-btn{ background:transparent; border:1.5px solid #3A4A67; color:var(--parchment); font-family:'IBM Plex Sans', sans-serif; font-size:12.5px; font-weight:500; padding:8px 13px; border-radius:8px; cursor:pointer; transition:border-color .15s ease, background .15s ease; width:100%; }
+  .icon-btn:hover{ background:#1E304F; border-color:var(--amber); }
+
+  .app-main{ flex:1; min-width:0; }
+
+  .readonly-banner{ background:#E3EFE7; color:var(--ok); font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.05em; text-transform:uppercase; text-align:center; padding:6px; }
+
+  .profile-wrap{ max-width:1080px; margin:0 auto; padding:36px 28px 64px; }
+
+
+
+  .identity-band{ background:#fff; border:1.5px solid #DDD5C4; border-radius:16px; padding:24px 26px; display:flex; gap:20px; align-items:flex-start; margin-bottom:28px; flex-wrap:wrap; }
+  .identity-photo{ width:64px; height:64px; border-radius:50%; background:var(--navy-800); color:var(--parchment); display:flex; align-items:center; justify-content:center; font-family:'Fraunces', serif; font-size:22px; flex:none; }
+  .identity-main{ flex:1; min-width:220px; }
+  .identity-main h1{ font-family:'Fraunces', serif; font-weight:500; font-size:26px; margin:0 0 4px; }
+  .identity-main .titre{ color:var(--slate); font-size:14px; margin:0 0 12px; }
+  .identity-contacts{ display:flex; flex-wrap:wrap; gap:10px 20px; }
+  .identity-contacts span{ font-size:12.5px; color:var(--ink); display:flex; align-items:center; gap:6px; }
+  .identity-contacts svg{ flex:none; opacity:.6; }
+  .identity-contacts a{ color:var(--navy-800); text-decoration:none; border-bottom:1px dotted var(--amber-dim); }
+  .identity-tri{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:13px; background:var(--parchment-dim); color:var(--navy-800); padding:6px 12px; border-radius:8px; flex:none; }
+  .no-photo-note{ font-size:10.5px; color:var(--slate); margin-top:4px; }
+
+  .profile-grid{ display:grid; grid-template-columns: minmax(0,1.65fr) minmax(0,1fr); gap:26px; align-items:start; }
+  @media (max-width: 860px){ .profile-grid{ grid-template-columns: 1fr; } }
+
+  .section-title{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--amber-dim); margin:0 0 14px; display:flex; align-items:center; gap:8px; }
+  .section-title .count{ background:var(--parchment-dim); color:var(--navy-800); border-radius:6px; padding:1px 7px; font-size:10px; }
+
+  .timeline{ position:relative; padding-left:22px; }
+  .timeline::before{ content:""; position:absolute; left:5px; top:6px; bottom:6px; width:1.5px; background:#D8D0BE; }
+  .tl-node{ position:relative; margin-bottom:22px; background:#fff; border:1.5px solid #DDD5C4; border-radius:12px; padding:16px 18px; }
+  .tl-node::before{ content:""; position:absolute; left:-22px; top:20px; width:9px; height:9px; border-radius:50%; background:var(--amber); border:2px solid var(--parchment); }
+  .tl-node h3{ font-size:15px; font-weight:500; margin:0 0 2px; }
+  .tl-node .employeur{ font-size:13px; color:var(--navy-800); font-weight:500; margin:0 0 4px; }
+  .tl-meta{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--slate); margin-bottom:10px; }
+  .tl-tags{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .tl-tags span{ font-size:10.5px; background:var(--parchment-dim); color:var(--navy-800); padding:3px 9px; border-radius:20px; }
+  .tl-missions{ margin:0; padding-left:18px; font-size:12.5px; color:var(--ink); line-height:1.6; }
+  .tl-missions li{ margin-bottom:3px; }
+  .tl-realisations{ margin-top:12px; padding-top:12px; border-top:1px dashed #E3DDCF; display:flex; flex-direction:column; gap:8px; }
+  .tl-real{ display:flex; gap:8px; align-items:flex-start; font-size:12.5px; background:var(--parchment); border-radius:8px; padding:8px 10px; }
+  .tl-real svg{ flex:none; margin-top:2px; opacity:.7; }
+  .tl-real .res{ display:block; margin-top:2px; font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ok); }
+
+  .side-panel{ background:#fff; border:1.5px solid #DDD5C4; border-radius:12px; padding:16px 18px; margin-bottom:20px; }
+  .comp-group{ margin-bottom:12px; }
+  .comp-group:last-child{ margin-bottom:0; }
+  .comp-group h4{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--slate); margin:0 0 7px; font-weight:500; }
+  .comp-pills{ display:flex; flex-wrap:wrap; gap:6px; }
+  .comp-pills span{ font-size:11.5px; background:var(--parchment); border:1px solid var(--parchment-dim); padding:4px 10px; border-radius:20px; }
+  .comp-pills span.niveau::after{ content: attr(data-niveau); color: var(--amber-dim); margin-left:4px; font-size:10.5px; }
+
+  .fc-item{ display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-top:1px solid #EFE9DB; font-size:12.5px; }
+  .fc-item:first-child{ border-top:none; }
+  .fc-item .fc-main{ flex:1; }
+  .fc-item .fc-title{ font-weight:500; }
+  .fc-item .fc-sub{ color:var(--slate); font-size:11.5px; margin-top:1px; }
+  .fc-item .fc-year{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--amber-dim); flex:none; }
+  .fc-tag{ display:inline-block; font-size:9px; text-transform:uppercase; letter-spacing:.04em; padding:1px 6px; border-radius:5px; margin-right:6px; background:var(--parchment-dim); color:var(--navy-800); }
+
+  .lang-item{ display:flex; justify-content:space-between; padding:8px 0; border-top:1px solid #EFE9DB; font-size:13px; }
+  .lang-item:first-child{ border-top:none; }
+  .lang-item .niv{ color:var(--slate); font-size:12px; }
+
+  .show-more-btn{ background:none; border:none; color:var(--amber-dim); font-family:'IBM Plex Mono', monospace; font-size:11px; text-decoration:underline; cursor:pointer; margin-top:8px; padding:0; }
+  .comp-hidden{ display:none; }
+
+  .empty-note{ font-size:12px; color:var(--slate); font-style:italic; }
+
+  .offers-wrap{ max-width:900px; margin:0 auto; padding:36px 28px 64px; }
+  .offers-header{ margin-bottom:24px; }
+  .offers-header h1{ font-family:'Fraunces', serif; font-weight:500; font-size:26px; margin:0 0 6px; }
+  .offers-header p{ color:var(--slate); font-size:13.5px; margin:0; }
+  .offers-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:14px; }
+  .offer-btn{ background:#fff; border:1.5px solid #DDD5C4; border-radius:12px; padding:16px 18px; text-align:left; cursor:pointer; transition:border-color .15s ease, transform .15s ease; }
+  .offer-btn:hover{ border-color:var(--amber); transform:translateY(-2px); }
+  .offer-btn .ttl{ font-size:14.5px; font-weight:500; margin:0 0 4px; line-height:1.3; }
+  .offer-btn .co{ font-size:12.5px; color:var(--slate); margin:0 0 10px; }
+  .offer-btn .tags{ display:flex; gap:6px; flex-wrap:wrap; }
+  .offer-btn .tags span{ font-size:10.5px; background:var(--parchment-dim); color:var(--navy-800); padding:3px 8px; border-radius:20px; }
+
+  .offer-detail{ max-width:640px; margin:0 auto; padding:36px 28px 64px; }
+  .back-link{ display:inline-flex; align-items:center; gap:6px; background:none; border:none; color:var(--amber-dim); font-family:'IBM Plex Mono', monospace; font-size:11.5px; cursor:pointer; padding:0; margin-bottom:20px; }
+  .offer-card{ background:#fff; border:1.5px solid #DDD5C4; border-radius:16px; padding:26px 28px; }
+  .offer-card .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--slate); margin:0 0 6px; }
+  .offer-card h2{ font-family:'Fraunces', serif; font-weight:500; font-size:21px; margin:0 0 4px; }
+  .offer-card .co{ font-size:13.5px; color:var(--navy-800); font-weight:500; margin:0 0 14px; }
+  .offer-facts{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .offer-facts span{ font-size:11.5px; background:var(--parchment-dim); color:var(--navy-800); padding:4px 10px; border-radius:20px; }
+  .offer-section{ border-top:1px solid #EFE9DB; padding-top:14px; margin-top:14px; }
+  .offer-section:first-of-type{ border-top:none; margin-top:0; padding-top:0; }
+  .offer-section h3{ font-size:11px; font-weight:500; color:var(--slate); text-transform:uppercase; letter-spacing:.05em; margin:0 0 8px; }
+  .offer-section ul{ margin:0; padding-left:18px; font-size:13px; line-height:1.6; }
+  .offer-section ul li{ margin-bottom:4px; }
+  .offer-section p{ font-size:13px; line-height:1.6; margin:0; }
+  .offer-source{ margin-top:18px; font-size:12px; }
+  .offer-source a{ color:var(--navy-800); }
+
+  .profile-btn{ background:#fff; border:1.5px solid #DDD5C4; border-radius:12px; padding:16px 18px; text-align:left; cursor:pointer; transition:border-color .15s ease, transform .15s ease; display:flex; align-items:center; gap:12px; }
+  .profile-btn:hover{ border-color:var(--amber); transform:translateY(-2px); }
+  .profile-btn .mono{ width:40px; height:40px; border-radius:50%; background:var(--navy-800); color:var(--parchment); display:flex; align-items:center; justify-content:center; font-family:'Fraunces', serif; font-size:15px; flex:none; }
+  .profile-btn .nm{ font-size:14.5px; font-weight:500; }
+  .back-to-picker{ display:inline-flex; align-items:center; gap:6px; background:none; border:none; color:var(--amber-dim); font-family:'IBM Plex Mono', monospace; font-size:11.5px; cursor:pointer; padding:0; margin-bottom:16px; }
+
+  .niveau-badge{ display:inline-block; font-size:10.5px; font-weight:600; padding:3px 10px; border-radius:20px; letter-spacing:.03em; }
+  .niveau-badge.fort{ background:#E3EFE7; color:var(--ok); }
+  .niveau-badge.moyen{ background:#FBF0DD; color:var(--amber-dim); }
+  .niveau-badge.faible{ background:#FBEAE4; color:var(--err); }
+
+  .swot-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:6px; }
+  @media (max-width:560px){ .swot-grid{ grid-template-columns:1fr; } }
+  .swot-quad{ border-radius:12px; padding:14px 16px; }
+  .swot-quad.forces{ background:#E9F3EC; }
+  .swot-quad.faiblesses{ background:#FBEAE4; }
+  .swot-quad.opportunites{ background:#E8F0FA; }
+  .swot-quad.menaces{ background:#FBF0DD; }
+  .swot-quad h4{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; margin:0 0 8px; font-weight:600; }
+  .swot-quad.forces h4{ color:var(--ok); }
+  .swot-quad.faiblesses h4{ color:var(--err); }
+  .swot-quad.opportunites h4{ color:#1E5FA8; }
+  .swot-quad.menaces h4{ color:var(--amber-dim); }
+  .swot-quad ul{ margin:0; padding-left:16px; font-size:12px; line-height:1.55; }
+  .swot-quad li{ margin-bottom:4px; }
+
+  .suggestions-block{ margin-top:18px; background:#fff; border:1.5px solid #DDD5C4; border-radius:12px; padding:16px 18px; }
+  .suggestions-block h3{ font-size:11px; font-weight:500; color:var(--amber-dim); text-transform:uppercase; letter-spacing:.05em; margin:0 0 8px; }
+  .suggestions-block ul{ margin:0; padding-left:18px; font-size:13px; line-height:1.6; }
+
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <section id="view-login">
+    <div class="brand-panel">
+      <div>
+        <div class="brand-eyebrow">ESCP · Groupe 11</div>
+        <h1 class="brand-title">Profil<br><em>Optimal</em></h1>
+        <p class="brand-sub">Copilote IA de gestion de carrière — CV contextualisés, recherche d'emploi et développement des compétences, fondés sur votre mémoire professionnelle.</p>
+        <div class="path-wrap">
+          <svg width="100%" height="70" viewBox="0 0 380 70" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M8 58 C 60 58, 60 42, 100 40 S 150 14, 190 20 S 250 46, 290 26 S 350 8, 372 10" stroke="#3A4A67" stroke-width="1.5" fill="none"/>
+            <g fill="#C08A2E">
+              <circle cx="8" cy="58" r="4"></circle>
+              <circle cx="100" cy="40" r="4"></circle>
+              <circle cx="190" cy="20" r="4"></circle>
+              <circle cx="290" cy="26" r="4"></circle>
+              <circle cx="372" cy="10" r="5"></circle>
+            </g>
+          </svg>
+          <div class="path-caption">F0-01 → F0-06 · TRAJECTOIRE BUILD V0</div>
+        </div>
+      </div>
+      <div class="brand-footer"><span class="dot"></span> Accès nominatif — 5 comptes équipe + 1 compte administrateur</div>
+    </div>
+
+    <div class="form-panel">
+      <div class="form-card">
+        <h2>Connexion</h2>
+        <p class="form-hint">Sélectionnez votre identité pour continuer.</p>
+        <div class="user-grid" id="userGrid"></div>
+        <div class="auth-panel" id="authPanel">
+          <div class="who">
+            <span class="tri-sm" id="whoTri"></span>
+            <span class="name" id="whoName"></span>
+          </div>
+          <div id="msgBox" class="msg"></div>
+          <div id="firstLoginBlock" style="display:none;">
+            <div class="mode-label">Première connexion — créez votre mot de passe</div>
+            <label class="field-label" for="pwdNew">Nouveau mot de passe</label>
+            <input type="password" id="pwdNew" autocomplete="new-password">
+            <label class="field-label" for="pwdNewConfirm">Confirmer le mot de passe</label>
+            <input type="password" id="pwdNewConfirm" autocomplete="new-password">
+            <ul class="rules" id="ruleList">
+              <li id="ruleLen">8 caractères minimum</li>
+              <li id="ruleDigit">Au moins un chiffre</li>
+              <li id="ruleUpper">Au moins une lettre majuscule</li>
+            </ul>
+            <button class="primary-btn" id="btnCreatePwd">Créer le mot de passe et me connecter</button>
+          </div>
+          <div id="loginBlock" style="display:none;">
+            <label class="field-label" for="pwdLogin">Mot de passe</label>
+            <input type="password" id="pwdLogin" autocomplete="current-password">
+            <button class="primary-btn" id="btnLogin">Se connecter</button>
+          </div>
+          <div class="crypto-note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 5v6c0 5 3.4 8.7 8 9 4.6-.3 8-4 8-9V5l-8-3z" stroke="#5B6472" stroke-width="1.4"/></svg>
+            <span>Le mot de passe n'est jamais stocké en clair : il est haché (SHA-256) avant tout enregistrement.</span>
+          </div>
+        </div>
+        <div class="reset-demo">
+          <button id="btnResetDemo" type="button">Réinitialiser les comptes de démonstration</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-app">
+    <aside class="app-sidebar">
+      <div class="sidebar-logo">Profil <em>Optimal</em></div>
+      <div class="sidebar-eyebrow">ESCP · Groupe 11</div>
+
+      <nav class="sidebar-nav">
+        <button type="button" id="navParcours">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+          Mon parcours
+        </button>
+        <button type="button" id="navOffres">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/></svg>
+          Offres d'emploi
+        </button>
+        <button type="button" id="navAdequation">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Adéquation
+        </button>
+      </nav>
+
+      <div class="sidebar-admin" id="adminSwitch" style="display:none;">
+        <label>Vue administrateur</label>
+      </div>
+
+      <div class="sidebar-user">
+        <div class="who-row">
+          <span class="tri-chip" id="appTri"></span>
+          <div>
+            <div class="nm" id="appName"></div>
+            <div class="rl" id="appRole"></div>
+          </div>
+        </div>
+        <button class="icon-btn" id="btnLogout">Se déconnecter</button>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <div id="panelParcours">
+        <div class="readonly-banner"><i>Consultation en lecture seule — aucune modification possible depuis cet écran</i></div>
+        <div class="profile-picker" id="profilePicker" style="display:none;">
+          <div class="offers-wrap">
+            <div class="offers-header">
+              <h1>Choisir un profil</h1>
+              <p>Sélectionnez le profil dont vous souhaitez consulter le parcours.</p>
+            </div>
+            <div class="offers-grid" id="profilePickerGrid"></div>
+          </div>
+        </div>
+        <div class="profile-wrap" id="profileWrap"></div>
+      </div>
+
+      <div id="panelOffres" style="display:none;">
+        <div class="offers-wrap">
+          <div class="offers-header">
+            <h1>Offres d'emploi</h1>
+            <p>Chaque offre correspond à une candidature suivie individuellement. Cliquez sur une offre pour voir le détail.</p>
+          </div>
+          <div class="offers-grid" id="offersGrid"></div>
+        </div>
+      </div>
+
+      <div id="panelOffreDetail" style="display:none;">
+        <div class="offer-detail">
+          <button type="button" class="back-link" id="btnBackOffres">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            Retour aux offres
+          </button>
+          <div id="offerCardWrap"></div>
+        </div>
+      </div>
+
+      <div id="panelAdequation" style="display:none;">
+        <div class="offers-wrap">
+          <div class="offers-header">
+            <h1 id="adequationTitle">Adéquation</h1>
+            <p id="adequationLead"></p>
+          </div>
+          <div class="offers-grid" id="adequationGrid"></div>
+        </div>
+      </div>
+
+      <div id="panelAdequationDetail" style="display:none;">
+        <div class="offer-detail">
+          <button type="button" class="back-link" id="btnBackAdequation">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            Retour à l'adéquation
+          </button>
+          <div id="adequationCardWrap"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var PERSON_DATA = {"SREL":{"personne":{"nom_complet":"Sarah Relid","titre_actuel":"PMO PORTEFEUILLE PROJETS | PILOTAGE TRANSVERSE","email":"sarah.relid@gmail.com","telephone":"06.40.81.61.35","ville":"Massy","linkedin":"","photo":""},"experiences":[{"id":"SREL-E01","employeur":"CARREFOUR","poste":"PMO Portefeuille / Value Manager - Digital Factory","debut":"oct. 2023","fin":"Aujourd'hui","lieu":"Massy, France","secteur":"Grande distribution","fonction":"PMO / Gestion de portefeuille projets","missions":["Pilotage transverse du plan de charge des Digital Factories (construction, arbitrages, fiabilisation)","Analyse capacité / charge et alertes sur les points de saturation","Formation des nouveaux arrivants aux procédures de travail","Suivi budgétaire consolidé du portefeuille (consommations, atterrissages, écarts)","Mise en place d'indicateurs de performance et de valeur pour la direction","Accompagnement des IT Managers dans la structuration des business cases","Contribution à la gouvernance portefeuille et à l'aide à la décision"]},{"id":"SREL-E02","employeur":"SOCIETE GENERALE","poste":"PMO Portefeuille Projets - Go To Cloud - FinOps","debut":"sept. 2019","fin":"août 2023","lieu":"Val de Fontenay, France","secteur":"Banque / Finance","fonction":"PMO / Gestion de portefeuille projets","missions":["Structuration et pilotage du portefeuille de projets IT (DevOps, Cloud, FinOps)","Mise en place des outils de pilotage portefeuille (engagements, charge, budget, risques)","Consolidation et analyse des données portefeuille pour les comités de décision","Pilotage budgétaire du programme Go To Cloud","Contribution aux arbitrages FinOps (optimisation des coûts, décommissionnement, priorisation)"]},{"id":"SREL-E03","employeur":"SOCIETE GENERALE","poste":"PMO Transverse - Programme réglementaire DSP2","debut":"mai 2018","fin":"août 2019","lieu":"Val de Fontenay, France","secteur":"Banque / Finance","fonction":"PMO Transverse","missions":["Pilotage transverse du programme réglementaire (coûts, délais, périmètre, risques)","Structuration de la gouvernance et des référentiels portefeuille","Suivi budgétaire consolidé et alertes direction","Préparation et animation des instances de pilotage","Reporting décisionnel à destination des sponsors"]},{"id":"SREL-E04","employeur":"CNAV","poste":"PMO Transverse - Projet Base Unique Retraite","debut":"déc. 2016","fin":"mai 2018","lieu":"Paris, France","secteur":"Secteur public / Retraite","fonction":"PMO Transverse","missions":["Pilotage de projet: planning/risques/support Business case","Organisation et animation des comités (Cellule de coordination fonctionnelle)","Gestion documentaire","Construction, maintien référentiels processus et organisation, proposition de gouvernance","Construction et maintien du suivi budgétaire","Suivi des risques: analyse des risques et alertes","Suivi de l'avancement des chantiers via point hebdomadaire avec les chefs de projet","Production d'un plan de communication, suivi des indicateurs de performance"]},{"id":"SREL-E05","employeur":"CREDIT DU NORD","poste":"PMO Portefeuille projets (Décisionnels, référentiels) et Projet Transverse","debut":"sept. 2015","fin":"nov. 2016","lieu":"Paris, France","secteur":"Banque / Finance","fonction":"PMO Portefeuille & Projet Transverse","missions":["Coordonner et gérer le portefeuille des projets de l'entité","Suivi d'avancement de la mise en œuvre du portefeuille de projets","Suivi budgétaire de l'ensemble des projets de l'entité","Analyse des risques et alerter","Organisation et animation des comités projet, comité de pilotage pour le projet transverse réglementaire","Réalisation des reportings","Elaboration des supports de décisions des différents comités"]},{"id":"SREL-E06","employeur":"CREDIT AGRICOLE SA","poste":"PMO - Projet transverse (10 000 Jh)","debut":"févr. 2014","fin":"août 2015","lieu":"Montrouge, France","secteur":"Banque / Finance","fonction":"PMO / Gestion de Projet","missions":["Pilotage projet: planning/risques / business case...","Construction, maintien des référentiels processus et organisation, proposition de gouvernance projet","Suivi budgétaire","Suivi des risques","Gestion documentaire","Organisation et animation des comités projet, comité de pilotage","Production d'un plan de communication, suivi des indicateurs de performance","Support pour le suivi des demandes d'évolutions"]},{"id":"SREL-E07","employeur":"ATTIJARI WAFA BANK","poste":"PMO - Portefeuille de projets banque de détail","debut":"sept. 2012","fin":"déc. 2013","lieu":"Paris, France","secteur":"Banque de détail","fonction":"PMO / Gestion de Projet","missions":["Pilotage projet: planning/risques/business case","Organisation, co-animation des instances de pilotage","Construction et maintien des référentiels processus et organisation","Gestion documentaire","Organisation de séminaires d'alignement entre chefs de projet dans les filiales","Support pour l'analyse des écarts de compétences et proposition des plans de formation types","Production d'outils de conduite du changement","Développement de méthodologies projets"]}],"realisations":[{"id":"SREL-R01","experience_id":"SREL-E06","description":"Projet transverse de grande envergure","resultat":"10 000 Jh"}],"competences":[{"libelle":"Pilotage de portefeuille projets & programmes","categorie":"technique","niveau":""},{"libelle":"Priorisation, arbitrages et aide à la décision","categorie":"fonctionnelle","niveau":""},{"libelle":"Gouvernance projets & instances de pilotage","categorie":"fonctionnelle","niveau":""},{"libelle":"Analyse capacité / charge","categorie":"technique","niveau":""},{"libelle":"Pilotage budgétaire & atterrissages","categorie":"technique","niveau":""},{"libelle":"Gestion des risques transverse","categorie":"transverse","niveau":""},{"libelle":"Reporting exécutif","categorie":"transverse","niveau":""},{"libelle":"Planisware","categorie":"technique","niveau":""},{"libelle":"NQI Orchestra","categorie":"technique","niveau":""},{"libelle":"Power BI","categorie":"technique","niveau":""},{"libelle":"Excel avancé","categorie":"technique","niveau":""}],"formations":[{"type":"formation","intitule":"Mastère 2 Management comptable et financier","etablissement":"Ecole de commerce Pôle Paris Alternance","annee":"2013"},{"type":"formation","intitule":"Mastère 2 Gestion de patrimoine","etablissement":"Ecole de commerce Pôle Paris Alternance","annee":"2013"},{"type":"formation","intitule":"Licence Economie Gestion - Parcours gestion des entreprises","etablissement":"Université Paris Sud XI","annee":"2011"},{"type":"certification","intitule":"Certification Prince 2","etablissement":"","annee":""},{"type":"certification","intitule":"Certification AMF","etablissement":"","annee":""}],"langues":[{"langue":"Espagnol","niveau":"Opérationnel"},{"langue":"Anglais","niveau":"Notions"}]},"CMAG":{"personne":{"nom_complet":"Clément Mages","titre_actuel":"Manager de transformation | Organisation, digital et IA appliquée | Pilotage opérationnel","email":"clement@human-centric.pro","telephone":"","ville":"","linkedin":"linkedin.com/in/clementmages","photo":""},"experiences":[{"id":"CMAG-E02","employeur":"SkillsWhere","poste":"Associé et cofondateur, Directeur des opérations / innovation","debut":"mars 2019","fin":"sept. 2019","lieu":"","secteur":"Édition de logiciels","fonction":"Direction des Opérations & Innovation","missions":["Refonte du modèle économique","Création de nouvelles offres et clarification de la proposition de valeur","Création et lancement de la marque SkillsWhere","Pilotage des opérations et des ressources","Direction de l'innovation et contribution à la conception du logiciel","Management d'équipe et coordination des prestataires techniques","Structuration du développement et de la mise en marché","Représentation auprès de clients, partenaires et investisseurs"]},{"id":"CMAG-E04","employeur":"Mister Brumiz","poste":"Associé, Directeur général","debut":"mai 2017","fin":"août 2019","lieu":"","secteur":"Équipements professionnels & Brumisateurs","fonction":"Direction Générale","missions":["Définition et mise en œuvre de la stratégie de développement","Direction des opérations","Marketing online et offline","Développement commercial et négociation de sujets stratégiques","Management et réactivation des équipes","Réorganisation des modes de fonctionnement","Gestion des tensions et restauration d'une dynamique collective","Définition, déploiement et suivi des KPI","Pilotage de prestataires techniques, créatifs et éditoriaux","Gestion de clients stratégiques","Ouverture d'une nouvelle zone en France","Développement international en Espagne, Bolivie, Afrique, Océanie et Chine"]},{"id":"CMAG-E03","employeur":"Bubbleting","poste":"Consultant Human Centric puis Directeur des opérations","debut":"janv. 2017","fin":"mars 2019","lieu":"","secteur":"Plateformes web & IT","fonction":"Direction des Opérations","missions":["Diagnostic de l'activité et du modèle","Pilotage des opérations","Management de trois collaborateurs","Gestion des ressources et priorisation","Amélioration de la performance","Travail sur le marketing, l'offre et le développement","Coordination des actions de transformation"]},{"id":"CMAG-E05","employeur":"DEKRA Automotive","poste":"Salarié - Chief Digital Officer / Directeur digital France, Espagne, Portugal et Maroc","debut":"mai 2015","fin":"avr. 2017","lieu":"","secteur":"Contrôle technique & Services Automobile","fonction":"Direction Digitale / CDO","missions":["Définition et mise en œuvre de la stratégie digitale","Développement et optimisation du chiffre d'affaires par les canaux numériques","Création de produits, offres et services différenciants","Transformation digitale des usages, des outils et des parcours","Direction de projets digitaux et IT B2B, B2C et B2B2B","Conception et pilotage de services pour les clients professionnels et le réseau","Gestion de la performance, des budgets, des KPI, du ROI et des prestataires","Management des équipes et conduite du changement","Accompagnement du réseau et coordination de parties prenantes stratégiques"]},{"id":"CMAG-E06","employeur":"Novalem / Fullsix / Havas","poste":"Associé, Directeur des opérations (DGA) et développement international","debut":"nov. 2010","fin":"avr. 2015","lieu":"","secteur":"Marketing Digital & Agence Web","fonction":"Direction des Opérations / DGA","missions":["Directeur de projet (2010-2012): pilotage de projets digitaux, SEO, data et logiciels pour des clients de secteurs variés, cadrage des besoins, coordination des parties prenantes","Direction des opérations et rôle de DGA (2012-2015): management d'environ 35 collaborateurs métiers, planification et allocation des ressources, recrutement, onboarding, suivi de la performance, pilotage de la cellule d'appels d'offres, développement commercial et international, mise en place d'un ERP, conception métier et fonctionnelle d'un logiciel propriétaire de suivi des positionnements et d'analyse SEO (ayant permis l'obtention du statut Jeune Entreprise Innovante)"]},{"id":"CMAG-E01","employeur":"Human Centric","poste":"Fondateur - Conseil en stratégie de développement, transformation et management de transition","debut":"janv. 2010","fin":"Aujourd'hui","lieu":"","secteur":"Conseil en stratégie et transformation","fonction":"Direction Conseil / Management de transition","missions":["Diagnostic de situation, clarification des enjeux et recherche de solutions opérationnelles","Stratégie de développement, positionnement, segmentation, proposition de valeur et mise en marché","Structuration et transformation d'activités, d'équipes, d'offres et de modes de fonctionnement","Management de transition, pilotage opérationnel et accompagnement de dirigeants","Marketing stratégique et opérationnel, digital, acquisition, relation client et développement commercial","Création, évolution et valorisation de produits ou services numériques","Conduite de projets, priorisation, organisation, indicateurs et gouvernance","Formation, coaching, animation d'ateliers et développement des compétences","Appui aux start-up: discours, preuves, résultats, argumentaires, pitchs et communication investisseurs"]},{"id":"CMAG-E07","employeur":"Pullseo","poste":"Cofondateur, Chef des opérations","debut":"sept. 2009","fin":"août 2010","lieu":"","secteur":"Marketing Digital & SEO","fonction":"Direction des Opérations","missions":["Co-création de l'agence","Définition et mise en place de l'organisation opérationnelle","Création des offres, services et argumentaires commerciaux","Création des processus, méthodes et outils de pilotage","Recrutement et onboarding","Gestion de projets et de la relation client","Production d'expertise digitale: audits, recommandations, stratégie et déploiement","Développement commercial et vente de prestations B2B","Pilotage de la production et des premiers clients"]},{"id":"CMAG-E08","employeur":"Freelance","poste":"Consultant en développement et marketing","debut":"sept. 2004","fin":"août 2009","lieu":"","secteur":"Conseil en marketing & développement","fonction":"Consultant Indépendant","missions":["Accompagnement de TPE, PME et associations sur des enjeux de positionnement et développement d'activité, organisation et structuration, marketing et communication, relation client, conseil opérationnel et pilotage de projets"]}],"realisations":[{"id":"CMAG-R01","experience_id":"CMAG-E05","description":"Croissance du chiffre d'affaires et de la productivité chez DEKRA","resultat":"Chiffre d'affaires multiplié par 6, activité portée à 20 M€, productivité multipliée par 3"},{"id":"CMAG-R02","experience_id":"CMAG-E06","description":"Développement et croissance de l'agence Novalem jusqu'à son rachat","resultat":"4 M€ de CA en 3 ans, 40 collaborateurs, > 90% de taux de renouvellement client"},{"id":"CMAG-R03","experience_id":"CMAG-E04","description":"Progression du chiffre d'affaires chez Mister Brumiz","resultat":"+60% de CA en 2018 et +175% en 2019"},{"id":"CMAG-R04","experience_id":"CMAG-E03","description":"Amélioration des performances opérationnelles de Bubbleting","resultat":"ROI multiplié par 2 en 6 mois"},{"id":"CMAG-R05","experience_id":"CMAG-E07","description":"Croissance de l'équipe Pullseo jusqu'au rachat","resultat":"Équipe passée de 3 à 7 collaborateurs en 10 mois avant rachat"}],"competences":[{"libelle":"Direction générale et des opérations","categorie":"fonctionnelle","niveau":""},{"libelle":"Stratégie digitale & Transformation numérique","categorie":"technique","niveau":""},{"libelle":"Cadrage, intégration et usages professionnels de l'IA","categorie":"technique","niveau":""},{"libelle":"Management d'équipes et pilotage de la performance","categorie":"transverse","niveau":""},{"libelle":"Product Ownership & Conception fonctionnelle","categorie":"technique","niveau":""},{"libelle":"SEO, SEA & Marketing d'acquisition","categorie":"technique","niveau":""},{"libelle":"Développement commercial & International","categorie":"fonctionnelle","niveau":""},{"libelle":"Conduite du changement","categorie":"transverse","niveau":""},{"libelle":"Formation & Ingénierie pédagogique pour adultes","categorie":"transverse","niveau":""},{"libelle":"Coaching de dirigeants & Management stratégique","categorie":"transverse","niveau":""}],"formations":[{"type":"formation","intitule":"Parcours « Piloter la transformation digitale avec l'IA »","etablissement":"ESCP Business School","annee":"2026"},{"type":"formation","intitule":"Techniques d'optimisation du potentiel - préparation mentale","etablissement":"École nationale supérieure de la Police","annee":"2023"},{"type":"formation","intitule":"Coach consultant professionnel accrédité (Spécialités Coaching de dirigeant & Gestion de carrière - RNCP 7)","etablissement":"Centre Européen du Coaching","annee":"2021"},{"type":"formation","intitule":"VAE Diplôme de formateur pour adultes (Niveau Licence Bac+3)","etablissement":"Université de Haute-Alsace","annee":"2021"},{"type":"certification","intitule":"Hootsuite Platform Certification","etablissement":"Hootsuite","annee":"2018"},{"type":"formation","intitule":"Licence professionnelle E-marketing et E-commerce","etablissement":"Université de Haute-Alsace","annee":"2010"},{"type":"formation","intitule":"Cursus Histoire, option NTIC","etablissement":"Université de Rennes","annee":"2009"},{"type":"formation","intitule":"Cursus Langues étrangères appliquées (Anglais, Espagnol), option NTIC","etablissement":"Université de Rennes","annee":"2007"}],"langues":[{"langue":"Français","niveau":"Langue maternelle"},{"langue":"Anglais","niveau":"Niveau professionnel courant"},{"langue":"Espagnol","niveau":"Niveau professionnel courant"}]},"MCHA":{"personne":{"nom_complet":"Mathieu Chaussée","titre_actuel":"Fondateur & Executive Advisor","email":"mathieu.chaussee@consitio-partners.com","telephone":"+33 (0)6 48 16 35 59","ville":"Boulogne-Billancourt ; Aix-en-Provence","linkedin":"linkedin.com/in/mathieu-chaussée","photo":""},"experiences":[{"id":"MCHA-E01","employeur":"Consitio Partners","poste":"Fondateur & Executive Advisor","debut":"déc. 2020","fin":"Aujourd'hui","lieu":"","secteur":"Conseil en stratégie et transformation","fonction":"Direction de cabinet et conseil exécutif","missions":["Intervenir auprès de Directions Générales et DSI sur des programmes SI critiques","Cadrer et piloter des transformations SI à forte exposition","Structurer des gouvernances exécutives et des comités d'arbitrage multi-entités","Aligner stratégie, organisation et systèmes d'information","Apporter un appui direct aux instances de pilotage et de décision CODIR et COMEX"]},{"id":"MCHA-E02","employeur":"SNCF Voyageurs – Direction du Matériel","poste":"Directeur de mission – Transformation du SI industriel","debut":"juin 2019","fin":"mars 2026","lieu":"Saint-Denis","secteur":"Transport ferroviaire","fonction":"Direction de mission et transformation SI","missions":["Piloter la trajectoire du SI de maintenance ferroviaire","Remettre sous contrôle un portefeuille applicatif fragmenté","Structurer un système décisionnel comprenant audit continu, scoring du patrimoine et comités d'arbitrage","Prioriser les investissements","Modéliser et arbitrer les dépendances entre programmes","Structurer le schéma directeur SI Maintenance à horizon dix ans","Modéliser les chaînes de valeur industrielles","Mettre en place une Design Authority transverse industrielle, data, documentation et exploitation","Aligner COMEX et CODIR sur les arbitrages d'investissement et la trajectoire de transformation"]},{"id":"MCHA-E03","employeur":"Disneyland Paris","poste":"Transition Manager – CRM Global Transformation","debut":"févr. 2019","fin":"mai 2019","lieu":"Serris","secteur":"Loisirs internationaux","fonction":"Management de transition et transformation CRM","missions":["Arbitrer les dimensions SI, CRM et Data dans un environnement international multi-acteurs","Décider du modèle cible CRM","Standardiser les processus marketing","Piloter les prestataires","Sécuriser la mise en production"]},{"id":"MCHA-E04","employeur":"Econocom – BU Infrastructure Consulting Expertise","poste":"Directeur Conseil & Innovation ⟵ Business Manager IT Gouvernance","debut":"janv. 2013","fin":"juin 2018","lieu":"Puteaux","secteur":"Services numériques et conseil IT","fonction":"Direction de practice et conseil en gouvernance SI","missions":["Construire et piloter commercialement et opérationnellement la practice Gouvernance SI & Service Management","Structurer les offres Stratégie, Projets & Pilotage et Service Management","Piloter le P&L de la practice","Manager une équipe de consultants","Construire des offres d'innovation autour de l'IA, du Cloud, des chatbots et de la supervision intelligente","Conduire des missions pour BNP Paribas et BP²I, Allianz et Nexter Systems"]},{"id":"MCHA-E05","employeur":"ESR Consulting","poste":"Strategy Consultant ⟵ Project Manager ⟵ Business Development","debut":"mai 2003","fin":"janv. 2013","lieu":"Meudon","secteur":"Conseil en stratégie et transformation IT","fonction":"Conseil en stratégie, gestion de projet et développement commercial","missions":["Conseiller des acteurs des transports, des télécommunications, de la finance et de l'énergie en stratégie et transformation","Réaliser du business planning","Piloter les risques et la gouvernance des projets","Déployer des référentiels PMI et PMBOK","Piloter des transformations multi-pays dans des filiales d'Europe de l'Est, du Maghreb, d'Afrique et d'Outre-Mer","Conduire le changement","Aligner métiers et IT sur des programmes structurants"]},{"id":"MCHA-E06","employeur":"Globecast (Orange) · Manpower IT · SAS Institute","poste":"Project Manager · IT Engineer","debut":"nov. 2000","fin":"avr. 2003","lieu":"","secteur":"Télécommunications ; services informatiques ; logiciels analytiques","fonction":"Gestion de projet et ingénierie informatique","missions":["Concevoir l'architecture et la supervision de plates-formes réseau","Assurer la télé-exploitation de stations terriennes Globecast","Administrer et maintenir des systèmes d'information","Réaliser de l'avant-vente sur les solutions analytiques SAS"]}],"realisations":[{"id":"MCHA-R01","experience_id":"MCHA-E02","description":"Remise sous contrôle d'un portefeuille SI fragmenté grâce à une vision orientée valeur","resultat":"Portefeuille applicatif d'environ 100 M€"},{"id":"MCHA-R02","experience_id":"MCHA-E02","description":"Identification d'économies et de leviers d'optimisation sur les investissements","resultat":"18 M€ d'économies identifiées ; 20-30 % de leviers d'optimisation"},{"id":"MCHA-R03","experience_id":"MCHA-E02","description":"Modélisation des chaînes de valeur industrielles et scoring du patrimoine applicatif","resultat":"11 chaînes de valeur industrielles"},{"id":"MCHA-R04","experience_id":"MCHA-E02","description":"Structuration du schéma directeur du SI Maintenance","resultat":"Horizon 10 ans"},{"id":"MCHA-R05","experience_id":"MCHA-E02","description":"Mise en place d'une Design Authority transverse couvrant l'industriel, la data, la documentation et l'exploitation","resultat":""},{"id":"MCHA-R06","experience_id":"MCHA-E04","description":"Pilotage du P&L de la practice Gouvernance SI & Service Management","resultat":"Management d'une équipe de 20 consultants"},{"id":"MCHA-R07","experience_id":"MCHA-E04","description":"Mission BNP Paribas et BP²I de rationalisation des référentiels, gestion des configurations et CMDB, urbanisation SI, intégration Clarity PPM et modélisation ArchiMate","resultat":"Mission de 3 ans"},{"id":"MCHA-R08","experience_id":"MCHA-E04","description":"Responsabilité des opérations du programme de refonte ITSM groupe d'Allianz, incluant les exigences métier cibles et le modèle de coûts","resultat":"Mission de 8 mois ; management de 25 personnes"},{"id":"MCHA-R09","experience_id":"MCHA-E04","description":"Direction d'une transformation SI critique chez Nexter Systems couvrant CMDB BMC ADDM, catalogue de services SRM et patch management","resultat":"Mission de 11 mois ; management de 15 personnes"}],"competences":[{"libelle":"Arbitrage exécutif et sécurisation de programmes stratégiques","categorie":"fonctionnelle","niveau":""},{"libelle":"Gouvernance SI","categorie":"fonctionnelle","niveau":""},{"libelle":"Enterprise Architecture","categorie":"technique","niveau":""},{"libelle":"Business Architecture","categorie":"fonctionnelle","niveau":""},{"libelle":"Design Authority","categorie":"fonctionnelle","niveau":""},{"libelle":"Rationalisation applicative","categorie":"fonctionnelle","niveau":""},{"libelle":"Arbitrage TCO / ROCE","categorie":"fonctionnelle","niveau":""},{"libelle":"Pilotage de portefeuille","categorie":"fonctionnelle","niveau":""},{"libelle":"Program Management","categorie":"transverse","niveau":""},{"libelle":"PMO","categorie":"transverse","niveau":""},{"libelle":"Transformation Office","categorie":"fonctionnelle","niveau":""},{"libelle":"CIO Office","categorie":"fonctionnelle","niveau":""},{"libelle":"CEO Office","categorie":"fonctionnelle","niveau":""},{"libelle":"IT Strategy","categorie":"fonctionnelle","niveau":""},{"libelle":"Strategic Roadmap","categorie":"fonctionnelle","niveau":""},{"libelle":"Target Operating Model","categorie":"fonctionnelle","niveau":""},{"libelle":"Executive Reporting","categorie":"transverse","niveau":""},{"libelle":"Animation de comités COMEX / CODIR","categorie":"transverse","niveau":""},{"libelle":"Decision Support","categorie":"fonctionnelle","niveau":""},{"libelle":"Application Portfolio Management","categorie":"fonctionnelle","niveau":""},{"libelle":"Risk Management","categorie":"transverse","niveau":""},{"libelle":"Change Management","categorie":"transverse","niveau":""},{"libelle":"Stakeholder Management","categorie":"transverse","niveau":""},{"libelle":"Data Governance","categorie":"fonctionnelle","niveau":""},{"libelle":"Service Management","categorie":"fonctionnelle","niveau":""},{"libelle":"Pilotage P&L","categorie":"fonctionnelle","niveau":""},{"libelle":"Management d'équipes","categorie":"transverse","niveau":""},{"libelle":"Business planning","categorie":"fonctionnelle","niveau":""},{"libelle":"Transformation multi-pays","categorie":"transverse","niveau":""},{"libelle":"Architecture et supervision de plates-formes réseau","categorie":"technique","niveau":""},{"libelle":"Télé-exploitation de stations terriennes","categorie":"technique","niveau":""},{"libelle":"Administration et maintenance SI","categorie":"technique","niveau":""},{"libelle":"Avant-vente de solutions analytiques","categorie":"fonctionnelle","niveau":""},{"libelle":"Clarity PPM","categorie":"technique","niveau":""},{"libelle":"MEGA HOPEX","categorie":"technique","niveau":""},{"libelle":"DataGalaxy","categorie":"technique","niveau":""},{"libelle":"BMC Atrium","categorie":"technique","niveau":""},{"libelle":"CMDB","categorie":"technique","niveau":""},{"libelle":"ESB","categorie":"technique","niveau":""},{"libelle":"MDM","categorie":"technique","niveau":""},{"libelle":"Architecture Repository","categorie":"technique","niveau":""},{"libelle":"Power BI","categorie":"technique","niveau":""},{"libelle":"Microsoft 365","categorie":"technique","niveau":""},{"libelle":"SharePoint","categorie":"technique","niveau":""},{"libelle":"Teams","categorie":"technique","niveau":""}],"formations":[{"type":"certification","intitule":"Executive Certificate « Piloter la transformation digitale avec l'IA » – en cours","etablissement":"ESCP Business School","annee":"2026"},{"type":"formation","intitule":"Master Sciences et Gestion – Mention Management","etablissement":"CNAM","annee":"2005"},{"type":"formation","intitule":"DUT Informatique – Alternance Sicovam SA (Euroclear France) – Infrastructure post-marché","etablissement":"Université Paris XIII","annee":"2000"},{"type":"certification","intitule":"TOGAF","etablissement":"Eagle – BNP Paribas","annee":""},{"type":"certification","intitule":"COBIT","etablissement":"","annee":""},{"type":"certification","intitule":"ITIL","etablissement":"","annee":""},{"type":"certification","intitule":"PMP","etablissement":"","annee":""},{"type":"certification","intitule":"ISO 27005","etablissement":"","annee":""},{"type":"certification","intitule":"ISO 31000","etablissement":"","annee":""}],"langues":[{"langue":"Français","niveau":"Langue maternelle"},{"langue":"Anglais","niveau":"B1/B2 – professionnel, contexte de travail bilingue – perfectionnement intensif en cours"}]},"SBYA":{"personne":{"nom_complet":"Serge Brouh Yapo","titre_actuel":"Ingénieur Agronome option Agro-Économie","email":"by_serge@yahoo.fr","telephone":"(+225) 07 08 73 26 53","ville":"Abidjan","linkedin":"","photo":""},"experiences":[{"id":"SBYA-E01","employeur":"Fonds Interprofessionnel pour la Recherche et le Conseil Agricoles (FIRCA)","poste":"Directeur, Département Systèmes d’Information et Communication (DSIC)","debut":"avr. 2025","fin":"Aujourd'hui","lieu":"","secteur":"Recherche et conseil agricoles","fonction":"Direction des systèmes d’information et communication","missions":["Supervision stratégique et opérationnelle du département","Coordination des projets numériques et de communication institutionnelle","Pilotage de la transformation digitale du FIRCA avec Microsoft 365 et le développement d’applications métier"]},{"id":"SBYA-E02","employeur":"Fonds Interprofessionnel pour la Recherche et le Conseil Agricoles (FIRCA)","poste":"Chargé d’Études et de Mission du Directeur Exécutif","debut":"août 2024","fin":"mars 2025","lieu":"","secteur":"Recherche et conseil agricoles","fonction":"Études et appui à la direction exécutive","missions":["Démarrage de la transformation digitale du FIRCA avec Microsoft 365 et des outils numériques internes","Coordination de l’audit informatique et modernisation des bases de données","Élaboration de tableaux de bord stratégiques pour le suivi des recommandations exécutives","Gestion des relations internationales avec le CIRAD et l’AU-EU IRC et de missions en France, aux USA et en Asie","Organisation de missions de haut niveau et de réunions du Conseil d’Administration"]},{"id":"SBYA-E03","employeur":"Fonds Interprofessionnel pour la Recherche et le Conseil Agricoles (FIRCA)","poste":"Chargé de Programmes Innovation","debut":"juin 2022","fin":"juil. 2024","lieu":"","secteur":"Recherche et conseil agricoles","fonction":"Gestion de programmes d’innovation agricole","missions":["Développement de stratégies de diffusion des innovations dans les filières agricoles","Coordination du Fonds Compétitif pour l’Innovation Agricole Durable","Promotion de l’usage des TIC en agriculture et valorisation des acquis de la recherche"]},{"id":"SBYA-E04","employeur":"Fonds Interprofessionnel pour la Recherche et le Conseil Agricoles (FIRCA)","poste":"Chargé de Programmes sur le Fonds Compétitif pour l’Innovation Agricole Durable (FCIAD)","debut":"juin 2016","fin":"juin 2022","lieu":"","secteur":"Recherche et conseil agricoles","fonction":"Gestion de programmes d’innovation agricole","missions":["Conception et gestion du projet FCIAD financé par l’AFD","Suivi de 44 projets innovants couvrant 23 filières agricoles","Organisation du Concours de l’Innovation Agricole Durable et des Journées J’INNOV","Réalisation d’études socioéconomiques sur les innovations agricoles"]},{"id":"SBYA-E05","employeur":"Fonds Interprofessionnel pour la Recherche et le Conseil Agricoles (FIRCA)","poste":"Chargé de Programmes Junior, Département Cultures d’Exportation et Productions Forestières (DCEPF)","debut":"janv. 2016","fin":"mai 2016","lieu":"","secteur":"Recherche et conseil agricoles","fonction":"Gestion de programmes agricoles","missions":["Identification des besoins, projets et programmes pour les filières Anacarde, Coton, Banane, Mangue, Papaye et Agrumes","Contribution à la définition des actions prioritaires pour le développement de ces filières","Production documentaire et suivi administratif comprenant termes de référence, rapports, comptes rendus, courriers officiels, Programmes Annuels d’Activités et contrats de mise en œuvre","Mise en œuvre des projets structurants ECAFC et PRRC financés par l’Union européenne et PSAC financé par la Banque Mondiale"]},{"id":"SBYA-E06","employeur":"Fonds Interprofessionnel pour la Recherche et le Conseil Agricoles (FIRCA)","poste":"Assistant Chargé de Programmes, Département Cultures d’Exportation et Productions Forestières (DCEPF)","debut":"juin 2014","fin":"déc. 2015","lieu":"","secteur":"Recherche et conseil agricoles","fonction":"Appui à la gestion de programmes agricoles","missions":["Appui à la conduite et à l’exécution des programmes de développement des filières Anacarde, Coton, Banane, Mangue, Papaye, Agrumes, Palmier et Hévéa"]},{"id":"SBYA-E07","employeur":"Société d’Étude et de Développement de la Culture Bananière (SCB)","poste":"Assistant Technique Spécialisé, Département Gestion de la Production et Amélioration de la productivité (DGAP)","debut":"déc. 2013","fin":"mars 2014","lieu":"","secteur":"Production bananière","fonction":"Assistance technique agricole","missions":["Agriculture de précision","Élaboration de bases de données","Cartographie thématique de tous les domaines de plantation de banane dessert","Élaboration des présentations des domaines de la SCB"]},{"id":"SBYA-E08","employeur":"Cabinet Le Mont Horeb","poste":"Chargé d’étude","debut":"juin 2013","fin":"nov. 2013","lieu":"","secteur":"Conseil agricole","fonction":"Études agricoles","missions":["Réalisation de missions de terrain, de diagnostics agricoles et de capitalisation de projets","Collaboration avec des cabinets de conseil, des ONG et des coopératives agricoles"]},{"id":"SBYA-E09","employeur":"École Supérieure d’Agronomie pour le compte du FIRCA","poste":"Stage de fin d’études pour l’obtention du Diplôme d’Agronomie Approfondie et du Diplôme d’Ingénieur Agronome","debut":"oct. 2012","fin":"mai 2013","lieu":"Zones centre et nord de la Côte d’Ivoire","secteur":"Enseignement supérieur et recherche agronomique","fonction":"Études agronomiques","missions":["Diagnostic des systèmes de production à base d’anacardier dans les zones centre et nord de la Côte d’Ivoire"]},{"id":"SBYA-E10","employeur":"SCB – Banacomoé","poste":"Stage de fin de première année d’étude agronomique","debut":"août 2010","fin":"oct. 2010","lieu":"Abengourou","secteur":"Production agricole","fonction":"Études agronomiques","missions":["Analyse technique et socioéconomique d’une exploitation agricole, cas de la SCB – Banacomoé d’Abengourou"]}],"realisations":[{"id":"SBYA-R01","experience_id":"SBYA-E01","description":"Pilotage de la transformation digitale du FIRCA avec Microsoft 365 et le développement d’applications métier","resultat":""},{"id":"SBYA-R02","experience_id":"SBYA-E02","description":"Démarrage de la transformation digitale du FIRCA avec Microsoft 365 et des outils numériques internes","resultat":""},{"id":"SBYA-R03","experience_id":"SBYA-E02","description":"Coordination de l’audit informatique et modernisation des bases de données","resultat":""},{"id":"SBYA-R04","experience_id":"SBYA-E02","description":"Élaboration de tableaux de bord stratégiques pour le suivi des recommandations exécutives","resultat":""},{"id":"SBYA-R05","experience_id":"SBYA-E03","description":"Développement de stratégies de diffusion des innovations dans les filières agricoles","resultat":""},{"id":"SBYA-R06","experience_id":"SBYA-E04","description":"Conception et gestion du projet FCIAD financé par l’AFD","resultat":""},{"id":"SBYA-R07","experience_id":"SBYA-E04","description":"Suivi de projets innovants dans les filières agricoles","resultat":"44 projets innovants couvrant 23 filières agricoles"},{"id":"SBYA-R08","experience_id":"SBYA-E04","description":"Organisation du Concours de l’Innovation Agricole Durable et des Journées J’INNOV","resultat":""},{"id":"SBYA-R09","experience_id":"SBYA-E05","description":"Mise en œuvre des projets structurants ECAFC, PRRC et PSAC","resultat":""},{"id":"SBYA-R10","experience_id":"SBYA-E07","description":"Cartographie thématique de tous les domaines de plantation de banane dessert de la SCB","resultat":""}],"competences":[{"libelle":"Supervision stratégique et opérationnelle","categorie":"transverse","niveau":""},{"libelle":"Management de département","categorie":"transverse","niveau":""},{"libelle":"Transformation digitale","categorie":"fonctionnelle","niveau":""},{"libelle":"Coordination de projets numériques","categorie":"fonctionnelle","niveau":""},{"libelle":"Microsoft 365","categorie":"technique","niveau":""},{"libelle":"Développement d’applications métier","categorie":"technique","niveau":""},{"libelle":"Audit informatique","categorie":"technique","niveau":""},{"libelle":"Élaboration et modernisation de bases de données","categorie":"technique","niveau":""},{"libelle":"Élaboration de tableaux de bord stratégiques","categorie":"fonctionnelle","niveau":""},{"libelle":"Gestion des relations internationales et des partenaires","categorie":"transverse","niveau":""},{"libelle":"Organisation de missions, ateliers et réunions","categorie":"transverse","niveau":""},{"libelle":"Gestion de programmes d’innovation agricole","categorie":"fonctionnelle","niveau":""},{"libelle":"Diffusion et valorisation des innovations agricoles","categorie":"fonctionnelle","niveau":""},{"libelle":"Usage des TIC en agriculture","categorie":"fonctionnelle","niveau":""},{"libelle":"Conception et gestion de projets de développement","categorie":"fonctionnelle","niveau":""},{"libelle":"Suivi technique et administratif de projets","categorie":"fonctionnelle","niveau":""},{"libelle":"Rédaction, instruction, évaluation et formalisation de projets","categorie":"fonctionnelle","niveau":""},{"libelle":"Production et analyse de rapports et de notes conceptuelles","categorie":"transverse","niveau":""},{"libelle":"Études et analyses socioéconomiques agricoles","categorie":"fonctionnelle","niveau":""},{"libelle":"Diagnostic agricole et missions de terrain","categorie":"fonctionnelle","niveau":""},{"libelle":"Capitalisation de projets","categorie":"fonctionnelle","niveau":""},{"libelle":"Agriculture de précision","categorie":"technique","niveau":""},{"libelle":"Cartographie thématique","categorie":"technique","niveau":""},{"libelle":"Word","categorie":"technique","niveau":"Parfaite maîtrise"},{"libelle":"Excel","categorie":"technique","niveau":"Parfaite maîtrise"},{"libelle":"PowerPoint","categorie":"technique","niveau":"Parfaite maîtrise"},{"libelle":"STATA","categorie":"technique","niveau":""},{"libelle":"EVIEWS","categorie":"technique","niveau":""},{"libelle":"R","categorie":"technique","niveau":""},{"libelle":"Power BI","categorie":"technique","niveau":""},{"libelle":"Microsoft Project","categorie":"technique","niveau":""},{"libelle":"MapInfo","categorie":"technique","niveau":""},{"libelle":"Philcarto","categorie":"technique","niveau":""},{"libelle":"ArcGiz","categorie":"technique","niveau":""},{"libelle":"Carte et données","categorie":"technique","niveau":""}],"formations":[{"type":"formation","intitule":"Suivi-Évaluation : traitement de données avec Excel et la suite de Business Intelligence Power BI","etablissement":"CIFOPE","annee":"2022"},{"type":"formation","intitule":"Formation sur le suivi-évaluation","etablissement":"FIRCA","annee":"2020"},{"type":"formation","intitule":"Formation sur le droit de la propriété intellectuelle","etablissement":"FIRCA","annee":"2020"},{"type":"formation","intitule":"Formation et sensibilisation à l’approche genre","etablissement":"FIRCA","annee":"2019"},{"type":"formation","intitule":"Formation sur la promotion des chaînes de valeurs en Afrique","etablissement":"IDC / GIZ","annee":"2015"},{"type":"formation","intitule":"Formation sur l’ancrage international, régional et national de la sécurité sanitaire des aliments et introduction à l’analyse des risques sanitaires des aliments","etablissement":"FIRCA","annee":"2014"},{"type":"formation","intitule":"Diplôme d’Agronomie Approfondie option Agroéconomie et Diplôme d’Ingénieur Agronome","etablissement":"École Supérieure d’Agronomie (ESA)","annee":"2012"},{"type":"formation","intitule":"Diplôme d’Agronomie Générale","etablissement":"INP-HB, École Supérieure d’Agronomie (ESA)","annee":"2011"},{"type":"formation","intitule":"Classes Préparatoires Mathématiques-Biologies, première et deuxième années","etablissement":"Institut National Polytechnique Félix Houphouët-Boigny (INP-HB), École Préparatoire","annee":"2007-2009"},{"type":"formation","intitule":"Baccalauréat Série D, mention Assez-Bien","etablissement":"Cours Secondaire Méthodiste de Cocody","annee":"2007"},{"type":"certification","intitule":"PMP, Credential #4225150","etablissement":"","annee":""}],"langues":[{"langue":"Français","niveau":"Langue maternelle"},{"langue":"Anglais","niveau":"Bon niveau"}]},"GMAN":{"personne":{"nom_complet":"Giuseppe Manes","titre_actuel":"VMware Specialist","email":"giuseppe.manes@gmail.com","telephone":"+33 (0)6 37 79 81 38","ville":"Montpellier","linkedin":"www.linkedin.com/in/giuseppe-manes","photo":""},"experiences":[{"id":"GMAN-E01","employeur":"Dell Technologies","poste":"VMware Specialist","debut":"juin 2018","fin":"Aujourd'hui","lieu":"Montpellier","secteur":"Technologies de l’information","fonction":"Développement commercial et vente de solutions technologiques","missions":["Développer le chiffre d’affaires VMware au sein de Dell sur les segments Enterprise, Public et Commercial","Piloter les actions et programmes des segments concernés afin de positionner les produits et services stratégiques","Accompagner les membres de l’équipe vers davantage d’efficacité et d’autonomie dans la vente de solutions VMware","Fournir des prévisions commerciales hebdomadaires, mensuelles et trimestrielles fiables","Identifier les actions permettant de développer l’activité"]},{"id":"GMAN-E02","employeur":"VMware","poste":"Services Business Manager","debut":"août 2015","fin":"juin 2018","lieu":"Cork","secteur":"Édition de logiciels et services informatiques","fonction":"Vente de services professionnels","missions":["Vendre les services professionnels sur la sous-région France, Italie et Afrique du Sud","Élaborer des propositions adaptées aux projets autour du Software Defined Data Center et de l’End User Computing","Collaborer avec les équipes commerciales chargées des comptes afin de développer les services de conseil","Développer stratégiquement les nouvelles activités de services sur les comptes et territoires attribués afin d’atteindre ou dépasser les objectifs","Piloter les plans d’opportunités de services et les campagnes sur les comptes clés chaque trimestre"]},{"id":"GMAN-E03","employeur":"VMware","poste":"Territory Executive","debut":"oct. 2013","fin":"juil. 2015","lieu":"Cork","secteur":"Édition de logiciels et services informatiques","fonction":"Vente et développement commercial territorial","missions":["Développer le chiffre d’affaires des licences et services sur les territoires géographiques attribués","Qualifier les nouvelles opportunités commerciales par l’exploration et la compréhension des problématiques complexes des clients","Vendre des solutions aux clients existants et aux nouveaux prospects","Fournir des prévisions commerciales et des informations précises sur le pipeline","Atteindre les objectifs de chiffre d’affaires","Développer de nouvelles stratégies de croissance"]},{"id":"GMAN-E04","employeur":"VMware Outsourcing","poste":"Marketing Campaigns Advisor","debut":"juil. 2010","fin":"août 2013","lieu":"Montpellier","secteur":"Technologies de l’information","fonction":"Marketing partenaires","missions":["Prendre en charge les activités de génération de demande du VMware Partner Marketing Bureau","Accompagner les partenaires dans le renforcement de leurs marques et l’amélioration de leurs stratégies commerciales de mise sur le marché","Piloter l’analyse des résultats et la gestion des leads","Fournir aux partenaires les programmes marketing leur permettant de revendre les produits VMware","Présenter les outils marketing lors des événements Hands-on Lab VMware Marketing, dont PEX Partner Exchange"]},{"id":"GMAN-E05","employeur":"Technip","poste":"Warranty Activities Coordinator","debut":"janv. 2006","fin":"janv. 2009","lieu":"Rome","secteur":"Ingénierie et projets industriels","fonction":"Coordination des garanties et activités de projet","missions":["Gérer les réclamations sous garantie dans le respect des spécifications des projets","Réduire les coûts et respecter les délais établis","Analyser les devis et recommander les actions à entreprendre","Négocier les coûts avec les fabricants et fournisseurs","Coordonner et superviser les activités sur site afin d’assurer des niveaux de performance efficaces","Déterminer les impacts sur les projets et transmettre les mises à jour documentaires aux départements concernés","Maintenir de bonnes relations avec les clients"]},{"id":"GMAN-E06","employeur":"Technip","poste":"Document Controller","debut":"juin 2004","fin":"déc. 2006","lieu":"Rome","secteur":"Ingénierie et projets industriels","fonction":"Gestion documentaire de projets","missions":["Maintenir les bases électroniques d’informations projet utilisées par l’équipe projet et le client","Définir l’organisation du contrôle documentaire et préparer les procédures de gestion documentaire","Vérifier que toute la documentation contrôlée du projet est à jour et complète, notamment les plans, spécifications et bons de commande","Assister les clients pendant les audits internes","Travailler avec l’équipe d’ingénierie pour identifier, annoter et soumettre les modifications pour approbation"]}],"realisations":[{"id":"GMAN-R01","experience_id":"GMAN-E01","description":"Gestion de partenaires DTA stratégiques de Dell à travers la Suisse","resultat":""},{"id":"GMAN-R02","experience_id":"GMAN-E01","description":"Établissement de relations avec des équipes internes transverses comprenant AE, AM, BDM, TAM, PM et partenaires","resultat":""},{"id":"GMAN-R03","experience_id":"GMAN-E02","description":"Récompense Most Valuable Player de l’équipe EMEA Professional Services Inside Sales","resultat":""},{"id":"GMAN-R04","experience_id":"GMAN-E01","description":"Reconnaissance de l’équipe EMEA pour le Simplify Transformational Pitch destiné aux clients et partenaires Dell","resultat":""}],"competences":[{"libelle":"Sales & Marketing","categorie":"fonctionnelle","niveau":""},{"libelle":"Account Management","categorie":"fonctionnelle","niveau":""},{"libelle":"New Business Development","categorie":"fonctionnelle","niveau":""},{"libelle":"Project Management","categorie":"fonctionnelle","niveau":""},{"libelle":"Relationship Management","categorie":"transverse","niveau":""},{"libelle":"Research & Analysis","categorie":"fonctionnelle","niveau":""},{"libelle":"Budgeting & Credit Control","categorie":"fonctionnelle","niveau":""},{"libelle":"Customer Services","categorie":"fonctionnelle","niveau":""},{"libelle":"Teamwork & Leadership","categorie":"transverse","niveau":""},{"libelle":"Partner Management","categorie":"fonctionnelle","niveau":""},{"libelle":"Sales Forecasting","categorie":"fonctionnelle","niveau":""},{"libelle":"Solution Selling","categorie":"fonctionnelle","niveau":""},{"libelle":"Opportunity Qualification","categorie":"fonctionnelle","niveau":""},{"libelle":"Lead Management","categorie":"fonctionnelle","niveau":""},{"libelle":"Demand Generation","categorie":"fonctionnelle","niveau":""},{"libelle":"Go-to-Market Strategy","categorie":"fonctionnelle","niveau":""},{"libelle":"Software Defined Data Center","categorie":"technique","niveau":""},{"libelle":"End User Computing","categorie":"technique","niveau":""},{"libelle":"VMware Solutions","categorie":"technique","niveau":""},{"libelle":"Warranty Claims Management","categorie":"fonctionnelle","niveau":""},{"libelle":"Cost Negotiation","categorie":"fonctionnelle","niveau":""},{"libelle":"Site Activities Coordination","categorie":"fonctionnelle","niveau":""},{"libelle":"Document Control","categorie":"fonctionnelle","niveau":""},{"libelle":"Document Management Procedures","categorie":"fonctionnelle","niveau":""},{"libelle":"Project Documentation Management","categorie":"fonctionnelle","niveau":""},{"libelle":"Internal Audit Support","categorie":"fonctionnelle","niveau":""},{"libelle":"Office Automation","categorie":"technique","niveau":""},{"libelle":"First Aid, Fire and Evacuation Emergency Procedures","categorie":"technique","niveau":"Safety and security administrator"}],"formations":[{"type":"certification","intitule":"Project Management Professional","etablissement":"","annee":"2016"},{"type":"certification","intitule":"PRINCE2 Foundation","etablissement":"","annee":"2016"},{"type":"certification","intitule":"HCI Strategy Portfolio","etablissement":"","annee":"2013-2021"},{"type":"certification","intitule":"VMware VOP License Expert","etablissement":"VMware","annee":"2013-2021"},{"type":"certification","intitule":"IT Transformation Whiteboard Accreditation","etablissement":"","annee":"2013-2021"},{"type":"certification","intitule":"VCP 550 - VMware Certified Professional Data Center Virtualization","etablissement":"VMware","annee":"2013-2021"},{"type":"certification","intitule":"VTSP - VMware Technical Sales Professional, DC Virtualization, Cloud et SD Storage","etablissement":"VMware","annee":"2013-2021"},{"type":"certification","intitule":"VSP - VMware Sales Professional, DC Virtualization, Storage, Management, EUC et Disaster Recovery","etablissement":"VMware","annee":"2013-2021"},{"type":"formation","intitule":"Technical Diploma","etablissement":"Istituto Tecnico Statale per Geometri, Termoli, Italy","annee":"1989-1994"},{"type":"formation","intitule":"Sandler Sales Training","etablissement":"","annee":""},{"type":"certification","intitule":"Office Automation ECDL","etablissement":"","annee":""},{"type":"certification","intitule":"VCP - VMware Certified Professional in Software Defined Storage","etablissement":"VMware","annee":""},{"type":"certification","intitule":"VCPC 550 - VMware Certified Professional Cloud","etablissement":"VMware","annee":""}],"langues":[{"langue":"Anglais","niveau":"Courant"},{"langue":"Français","niveau":"Courant"},{"langue":"Italien","niveau":"Langue maternelle"},{"langue":"Espagnol","niveau":"Basique"}]}};
+
+  var OFFERS_DATA = [{"id":"SREL-O1","trigramme":"SREL","titre_poste":"System Technical Project Manager","societe":"Valeo","lieu":"Créteil","contrat":"Temps plein","salaire":"","experience":"","teletravail":"","date_publication":"30/07/2026","date_limite":"","secteur":"Automobile / ADAS","source_site":"Valeo Careers (Workday)","source_url":"https://valeo.wd3.myworkdayjobs.com/en-US/valeo_jobs/job/Crteil/System-Technical-Project-Manager_REQ2026074261","missions":["Responsable de l'exécution du budget de la discipline dans le cadre du projet attribué","Diriger la gestion QCD (qualité, coûts, délais) de la discipline au sein du projet","Mettre en œuvre la revue technique et le plan d'actions correctives","Assurer le QRQC (contrôle qualité à réponse rapide) de la discipline","Soutenir le développement des compétences de l'équipe de conception","Collaborer avec le responsable technique et le chef de projet R&D","Diriger et encadrer les concepteurs de la discipline"],"profil":["Licence ou master en génie électrique, informatique, mécatronique ou domaine technique connexe"],"competences":[],"entreprise":"Valeo, leader mondial des aides à la conduite, Division Valeo Brain. Le Mobility Tech Center de Créteil regroupe 1180 collaborateurs autour des systèmes ADAS, de connectivité et d'interfaces homme-machine."},{"id":"SREL-O2","trigramme":"SREL","titre_poste":"Chef(fe) de Projets Transverses Finance, Stratégie, Risques F/H","societe":"SGAM Aéma","lieu":"Issy-les-Moulineaux, Hauts-de-Seine (92)","contrat":"CDI","salaire":"Selon profil","experience":"4 à 6 ans","teletravail":"","date_publication":"03/08/2026","date_limite":"28/08/2026","secteur":"Assurance / Finance","source_site":"Talent-soft (Aéma)","source_url":"https://aema.talent-soft.com/Pages/Offre/detailoffre.aspx?idOffre=9192&LCID=1036&idOrigine=1522","missions":["Cadrage et pilotage de projets transverses portés par d'autres directions","Pilotage du chantier Intelligence Artificielle transverse du plan stratégique","Coordination de la Direction Finance, Stratégie, Risques et Performance","Participation aux analyses stratégiques et financières (modélisation, ateliers)","Animation du CoDir, préparation et suivi des instances politiques et techniques"],"profil":["Diplômé(e) grande école de commerce, ingénieur, IEP ou cursus universitaire de haut niveau","4 à 6 ans d'expérience en gestion de projet (conseil stratégie/organisation ou direction stratégie/finance)","Solides compétences analytiques, de synthèse et de conceptualisation","Maîtrise du français et de l'anglais"],"competences":["Gestion de projet","Analyse stratégique","Coordination d'instances","Appétence IA"],"entreprise":"SGAM Aéma, structure de pilotage d'Aéma Groupe, basée à Paris, Issy-les-Moulineaux et Niort. Équipe agile et entrepreneuriale, forte autonomie."},{"id":"SREL-O3","trigramme":"SREL","titre_poste":"PMO Finance de marché - F/H","societe":"Ingéniance","lieu":"Paris (75)","contrat":"","salaire":"","experience":"5 ans minimum","teletravail":"","date_publication":"06/08/2026","date_limite":"","secteur":"IT Finance de marché","source_site":"eFinancialCareers / Indeed","source_url":"https://www.efinancialcareers.fr/jobs-France-Paris-PMO_Finance_de_march%C3%A9_-_FH.id24614411","missions":["Planification et suivi des projets : plannings, risques, budgets","Reporting régulier aux directions métiers et IT","Gestion des changements : nouveaux processus, outils, réglementations","Coordination entre équipes métiers et techniques","Assurance qualité des livrables","Analyse fonctionnelle des produits financiers (dérivés, produits de taux)"],"profil":["Formation supérieure ingénieur ou équivalent Bac+5","Bonne connaissance des marchés financiers et de leurs produits","Au moins 5 ans d'expérience en tant que PMO","Anglais professionnel indispensable"],"competences":[],"entreprise":"Ingéniance, pure player IT en finance de marché depuis 19 ans, clients : BNP Paribas, Crédit Agricole, Société Générale, BPCE."},{"id":"SBYA-O1","trigramme":"SBYA","titre_poste":"Group Agri Innovation Project Manager","societe":"SOLEVO","lieu":"Abidjan, Côte d'Ivoire","contrat":"","salaire":"","experience":"7 à 10 ans","teletravail":"","date_publication":"","date_limite":"","secteur":"Agro-industrie","source_site":"LinkedIn","source_url":"https://www.linkedin.com/jobs/view/4446438197/","missions":["Gérer le pipeline d'innovation complet de la Business Line Agro (priorisation, feuilles de route)","Construire et diriger des équipes projet transverses par initiative stratégique","Animer les réunions de projet, tenir les trackers d'action, escalader les blocages","Diriger les initiatives phares d'innovation (nouveaux produits, agriculture digitale)","Coordonner le pré-lancement et le lancement de nouveaux produits","Établir et faire fonctionner une gouvernance d'innovation structurée"],"profil":["Diplôme Bac+5/Master en Business ou Ingénierie Agricole/Industrielle","7 à 10 ans d'expérience en agro-intrants, avec gestion de projet multi-pays","Excellentes compétences analytiques","Anglais et français courants","Atout : portugais, Power BI, outils JIRA/Asana/Trello"],"competences":["Gestion de portefeuille d'innovation","Coordination multi-pays","Gouvernance projet"],"entreprise":"SOLEVO, distributeur leader de produits chimiques et intrants agricoles en Afrique, plus de 75 ans d'expérience sur le continent."},{"id":"SBYA-O2","trigramme":"SBYA","titre_poste":"Spécialiste en Agriculture","societe":"DRC (Danish Refugee Council) — poste hébergé par APROSPEN","lieu":"Djohong, mobilité Garoua Boulai / Meiganga, Cameroun","contrat":"Contrat national","salaire":"Niveau NM.G 2","experience":"","teletravail":"","date_publication":"","date_limite":"","secteur":"Humanitaire / Agriculture","source_site":"Impactpool","source_url":"https://www.impactpool.org/jobs/1109207","missions":["Accompagner les bénéficiaires dans la mise en œuvre d'activités génératrices de revenus agricoles","Veiller à la conformité des activités agricoles aux procédures ECREC de DRC","Encadrer et former les équipes et bénéficiaires sur les techniques de production"],"profil":[],"competences":[],"entreprise":"Le Conseil Danois pour les Réfugiés (DRC), fondé en 1956, organisation humanitaire internationale présente dans 40 pays."},{"id":"SBYA-O3","trigramme":"SBYA","titre_poste":"Ingénieur agronome ou équivalent","societe":"SCA-SEHAC","lieu":"Côte d'Ivoire","contrat":"","salaire":"","experience":"3 à 5 ans","teletravail":"","date_publication":"","date_limite":"","secteur":"Agronomie tropicale","source_site":"LinkedIn","source_url":"https://www.linkedin.com/jobs/view/ing%C3%A9nieur-agronome-ou-%C3%A9quivalent-at-sca-sehac-4112537911/","missions":[],"profil":["Diplôme d'ingénieur agronome, spécialisation agronomie tropicale ou production végétale","3 à 5 ans d'expérience en riziculture pluviale en Afrique de l'Ouest, idéalement Côte d'Ivoire","Bonne compréhension des écosystèmes agricoles ivoiriens"],"competences":["Agro-écologie et agronomie tropicale","Gestion de l'eau en culture pluviale","Machinisme agricole adapté","Communication et vulgarisation technique","Français indispensable, anglais un atout"],"entreprise":""},{"id":"SBYA-O4","trigramme":"SBYA","titre_poste":"Ingénieur.e SAP Agro","societe":"SIFCA","lieu":"Abidjan","contrat":"CDI","salaire":"","experience":"5 ans minimum dont 3 ans SAP","teletravail":"","date_publication":"","date_limite":"14 août 2026","secteur":"Agro-industrie / SI","source_site":"Site carrière SIFCA","source_url":"https://groupesifca.com/recrutement/ingenieur-e-sap-rh-sifca/","missions":["Contribuer à l'analyse et la définition de solutions SI Logistique","Participer à l'analyse des pratiques existantes et proposer des améliorations","Contribuer à la gestion courante de la solution AGRO (assistance, incidents, qualité de service)","Participer à la résolution des soucis techniques émis par le métier","Contribuer à la formation des utilisateurs finaux"],"profil":["Bac+4/5 en Agronomie ou Informatique de gestion","5 ans d'expérience minimum dont 3 ans dans le domaine SAP"],"competences":["SAP (RE-FX/MM/SD/PP/PM/HCM)","Gestion de projet","Organisation et rigueur","Analyse et communication"],"entreprise":"SIFCA, leader du secteur Agro-Industriel en Côte d'Ivoire."},{"id":"SBYA-O5","trigramme":"SBYA","titre_poste":"Recrutement de consultants individuels — UGP ProTAS Phase 1","societe":"Ministère de l'Agriculture, de l'Élevage et de la Pêche (Bénin) — financement BAD","lieu":"Cotonou, Bénin","contrat":"Contrat 1 an renouvelable","salaire":"","experience":"","teletravail":"","date_publication":"Décembre 2025","date_limite":"","secteur":"Développement agricole / Bailleurs de fonds","source_site":"Document PDF (Termes de référence)","source_url":"","missions":["Planifier, coordonner et superviser l'ensemble des activités du projet ProTAS","Superviser l'élaboration des plans de travail et budgets annuels","Coordonner et suivre les processus d'acquisition planifiés","Superviser les activités de suivi-évaluation du projet","Coordonner la gestion administrative et financière du projet"],"profil":[],"competences":[],"entreprise":"Projet de Transformation de l'Agriculture dans la zone de Savane, Phase 1 (ProTAS), financé par le Groupe de la Banque Africaine de Développement, budget total 76,06 milliards de FCFA."},{"id":"GMAN-O1","trigramme":"GMAN","titre_poste":"Senior Partner Sales Manager - France","societe":"Snowflake","lieu":"Paris, Île-de-France","contrat":"Temps plein","salaire":"","experience":"","teletravail":"","date_publication":"","date_limite":"","secteur":"Data / Cloud","source_site":"LinkedIn","source_url":"https://www.linkedin.com/jobs/view/4440342887/","missions":["Stratégie : posséder la feuille de route partenaires (GSI + RSI) en France","Exécution : soutenir l'acquisition et l'expansion, intégrer les partenaires dans le cycle de vente","Leadership : recruter, développer et faire grandir une équipe partenaires performante en France"],"profil":["Solide expérience de l'écosystème partenaires cloud/data français","État d'esprit orienté résultats, capacité à opérer dans l'ambiguïté","Track record avéré de construction de revenus portés par les partenaires","Français et anglais courants"],"competences":["Gestion de partenariats GSI/RSI","Négociation commerciale","Collaboration transverse"],"entreprise":"Snowflake, plateforme Data & IA, plus de 5000 employés, présence mondiale."},{"id":"GMAN-O2","trigramme":"GMAN","titre_poste":"Regional Sales Manager, Golf","societe":"Rain Bird Corporation","lieu":"Île-de-France, France","contrat":"","salaire":"","experience":"5 ans minimum","teletravail":"Déplacement 50-70% du temps","date_publication":"","date_limite":"","secteur":"Irrigation / Distribution","source_site":"LinkedIn","source_url":"","missions":["Atteindre et dépasser les objectifs de vente et de part de marché","Encadrer l'équipe de vente golf Europe du Sud","Développer les réseaux de distribution et gérer les partenaires clés","Identifier des opportunités de développement commercial","Suivre les performances de vente et l'analyse de marché"],"profil":["5 ans ou plus d'expérience en management commercial international","Licence, de préférence en commerce ou domaine technique","Anglais et français professionnels courants","Expérience en supervision d'équipe"],"competences":["Leadership commercial international","Développement de réseaux de distribution","Relation client golf/irrigation"],"entreprise":"Rain Bird Corporation, leader mondial des solutions d'irrigation depuis 1933, présent dans plus de 130 pays."},{"id":"GMAN-O3","trigramme":"GMAN","titre_poste":"Sr. Technical Account Manager","societe":"Genesys","lieu":"France","contrat":"","salaire":"","experience":"","teletravail":"","date_publication":"","date_limite":"","secteur":"Expérience client / IA","source_site":"LinkedIn","source_url":"","missions":["Accompagner des clients stratégiques dans l'adoption de Genesys Cloud CX","Construire des relations de confiance et comprendre les priorités métier/technologiques des clients","Développer une expertise technique approfondie sur Genesys Cloud CX","Fournir des évaluations technologiques et des feuilles de route orientées résultats","Faire remonter les retours produit et cas d'usage aux équipes produit"],"profil":[],"competences":["Relation client stratégique","Expertise technique Genesys Cloud CX","Gestion de comptes complexes"],"entreprise":"Genesys, plateforme d'orchestration d'expérience client propulsée par l'IA, utilisée par plus de 8000 organisations dans plus de 100 pays."},{"id":"MCHA-O1","trigramme":"MCHA","titre_poste":"Architecte Data (H/F)","societe":"Grande ESN (via cabinet Générale Europe Consultants)","lieu":"Paris 16 (75)","contrat":"CDI","salaire":"70-90 k€ brut annuel","experience":"Plus de 12 ans dont expérience data significative","teletravail":"Partiel possible","date_publication":"09/07/2026","date_limite":"","secteur":"Conseil en systèmes et logiciels informatiques","source_site":"Apec","source_url":"","missions":["Définir des architectures Data (Data Lake, Data Warehouse, Lakehouse)","Concevoir des pipelines de données (batch et temps réel)","Cadrer les projets au forfait (choix techniques, chiffrage, analyse des risques)","Piloter les équipes techniques (Data Engineers, Dev, Ops)","Déployer des solutions data sur AWS, Azure ou GCP","Mettre en place des politiques de gouvernance des données (RGPD, sécurité)"],"profil":["Bac+5 (école d'ingénieur ou université)","Plus de 12 ans d'expérience en IT dont une expérience significative en data","Expérience confirmée en architecture data et en projets au forfait"],"competences":["Architectures data modernes (Spark, Kafka)","Cloud AWS/Azure/GCP","Outils Airflow/dbt/Snowflake/Databricks","Cadrage et chiffrage de projet","Leadership"],"entreprise":"Poste à pourvoir chez une très grande ESN (+120 000 personnes, +50 pays), via le cabinet de recrutement GEC."},{"id":"MCHA-O2","trigramme":"MCHA","titre_poste":"Directeur de Business Unit – Secteur Énergie & Utilities","societe":"ESN (via cabinet Talents Digital)","lieu":"Paris 17 (75)","contrat":"CDI","salaire":"À partir de 100 k€ brut annuel + variable 8-12% de la marge brute","experience":"Minimum 5 ans","teletravail":"","date_publication":"04/08/2026","date_limite":"","secteur":"ESN / Conseil IT","source_site":"Apec","source_url":"","missions":["Piloter et développer un portefeuille de comptes clients sur le secteur Énergie & Utilities","Encadrer, former et faire monter en compétences 2 Business Managers Juniors","Suivre et développer une équipe d'une vingtaine de consultants (20 ETP)","Garantir la rentabilité globale de la Business Unit (chiffre d'affaires, TJM, marge brute)"],"profil":["Minimum 5 ans d'expérience au sein d'une ESN ou d'un cabinet de conseil IT","Connaissance éprouvée et réseau d'interlocuteurs sur le secteur Énergie/Utilities","Expérience réussie dans le management direct de Business Managers"],"competences":["Développement commercial grands comptes","Management commercial","Pilotage P&L","Leadership entrepreneurial"],"entreprise":"ESN agile et transparente en forte croissance, spécialisée conseil et ingénierie technologique (Infrastructures IT, Cloud, Cybersécurité, Data)."},{"id":"MCHA-O3","trigramme":"MCHA","titre_poste":"Directeur de Grands Projets H/F","societe":"Grande ESN (via cabinet Générale Europe Consultants)","lieu":"Paris 16 (75)","contrat":"CDI","salaire":"70-90 k€ brut annuel","experience":"Minimum 5 ans","teletravail":"Partiel possible","date_publication":"06/07/2026","date_limite":"","secteur":"Conseil en systèmes et logiciels informatiques","source_site":"Apec","source_url":"","missions":["Piloter plusieurs grands projets au forfait","Porter les engagements contractuels et financiers (P&L, marges, risques)","Encadrer les chefs de projet","Gérer la relation client","Contribuer au développement de l'activité (avant-vente, appels d'offres)"],"profil":["Expérience en direction de projets, idéalement en contexte forfaitaire","Maîtrise des engagements au forfait et des environnements grands comptes","Formation supérieure en informatique (Bac+5 ou équivalent)","Leadership, communication et sens du service client"],"competences":["Management de projet au forfait","Relation client grands comptes","Avant-vente / appels d'offres","P&L"],"entreprise":"Poste à pourvoir chez une très grande ESN (+120 000 personnes, +50 pays), via le cabinet de recrutement GEC."},{"id":"MCHA-O4","trigramme":"MCHA","titre_poste":"Directeur des Systèmes d'Information et du Numérique H/F","societe":"Agglomération Paris-Saclay","lieu":"Orsay, Île-de-France","contrat":"","salaire":"","experience":"","teletravail":"","date_publication":"","date_limite":"","secteur":"Collectivité territoriale / Numérique","source_site":"LinkedIn","source_url":"https://www.linkedin.com/jobs/view/4436110184/","missions":["Élaborer, mettre en œuvre et actualiser le Schéma Directeur des Systèmes d'Information et du Numérique (SDSIN 2026-2029)","Participer à la définition des orientations stratégiques de transformation numérique","Garantir la cohérence, la performance et la sécurité globale du SI intercommunal","Conduire la politique d'urbanisation du SI (rationalisation, trajectoire cloud hybride)","Assurer la gouvernance de la donnée (qualité, catalogue, open data)"],"profil":[],"competences":["Gouvernance SI","Stratégie numérique territoriale","Cybersécurité","Gouvernance de la donnée"],"entreprise":"Agglomération Paris-Saclay, Direction des Systèmes d'Information et du Numérique (DSIN) en phase de transformation."}];
+
+  var MATCHES_DATA = [{"offer_id":"SREL-O1","trigramme":"SREL","niveau":"Moyen","swot":{"forces":["Solide expérience PMO (portefeuille, budget, QCD) directement transférable au poste","Habitude de piloter des instances de gouvernance et des comités d'arbitrage","Expérience de la conduite de programmes réglementaires et de leur suivi budgétaire","Maîtrise d'outils de pilotage portefeuille (Planisware, Power BI)","Expérience multi-secteurs (banque, retraite, distribution) montrant une bonne capacité d'adaptation"],"faiblesses":["Aucune expérience explicite dans le secteur automobile ou l'ingénierie ADAS","Niveau d'anglais indiqué comme 'notions', insuffisant pour un environnement Valeo international","Pas de mention de formation technique (électrique, mécatronique) demandée par l'offre","Expérience concentrée sur le pilotage transverse plutôt que sur l'encadrement direct de concepteurs techniques","Aucune certification citée en lien avec la discipline technique visée"],"opportunites":["Les compétences de gestion QCD et de gouvernance de projet sont directement réutilisables","Le poste valorise la structuration de référentiels, un point fort du profil","Progression possible vers un rôle de pilotage transverse multi-projets chez Valeo","Le secteur ADAS est en forte croissance, offrant une perspective de carrière élargie","Passerelle possible depuis la finance/banque vers l'industrie via le pilotage de programmes"],"menaces":["Le niveau d'anglais actuel pourrait être éliminatoire dans un groupe international","Concurrence probable de candidats issus directement du secteur automobile/ADAS","Absence de formation technique pouvant limiter la crédibilité face aux concepteurs encadrés","Écart sectoriel (finance vers automobile) pouvant nécessiter une période d'adaptation longue","Le poste encadre des concepteurs techniques, ce qui suppose une légitimité technique à démontrer"]},"suggestions":["Préciser un niveau d'anglais actualisé (certification type TOEIC/Linguaskill) si le niveau réel est meilleur que 'notions'","Mettre en avant toute expérience, même indirecte, avec des environnements techniques ou industriels","Ajouter une formation courte ou une sensibilisation aux méthodes QRQC si suivie"]},{"offer_id":"SREL-O2","trigramme":"SREL","niveau":"Fort","swot":{"forces":["Expérience directe de PMO transverse Finance/Stratégie/Risques en environnement bancaire","Habitude de l'animation de comités de pilotage et de la préparation d'instances de décision","Expérience de la structuration de gouvernance et de référentiels portefeuille","Formation Mastère Management comptable et financier, alignée avec le secteur assurance/finance","Expérience multi-sociétés démontrant une capacité à s'intégrer rapidement dans une nouvelle organisation"],"faiblesses":["Aucune expérience explicite du secteur assurance en particulier","Pas de mention de compétences en cadrage de sujets liés à l'IA transverse, demandées par l'offre","Diplômes obtenus via un cursus en alternance, potentiellement moins valorisés qu'une grande école pour ce poste","Anglais 'notions', alors que l'offre requiert la maîtrise du français et de l'anglais","Pas d'expérience directe de conseil en stratégie ou organisation"],"opportunites":["Le pilotage de projets transverses réglementaires est une expérience très proche du poste visé","La structuration de gouvernance est une compétence rare et recherchée par l'offre","Le poste est basé en Ile-de-France, cohérent avec la localisation actuelle (Massy)","Progression possible vers un rôle de coordination de direction (DFRSP)","Le pilotage de chantiers IA transverses pourrait être appris rapidement vu l'expérience de gouvernance"],"menaces":["Le niveau d'anglais pourrait limiter les échanges avec les marques du Groupe","Concurrence de profils issus directement du conseil en stratégie","Le manque d'expérience assurance pourrait nécessiter une montée en compétence rapide sur les produits du secteur","La date de prise de poste (01/10/2026) laisse peu de marge pour un processus de recrutement long","Le poste implique une exposition directe aux instances de direction, un niveau d'enjeu élevé"]},"suggestions":[]},{"offer_id":"SREL-O3","trigramme":"SREL","niveau":"Fort","swot":{"forces":["Expérience directe et récente de PMO en environnement bancaire (Société Générale, Crédit Agricole, Crédit du Nord)","Formation Bac+5 en management comptable et financier, cohérente avec le secteur","Expérience de suivi budgétaire, gestion des risques et reporting exécutif","Habitude de l'analyse fonctionnelle dans des environnements financiers complexes","Certification Prince2 démontrant une maîtrise formalisée de la gestion de projet"],"faiblesses":["Pas d'expérience explicite sur les produits dérivés ou produits de taux mentionnés par l'offre","Anglais 'notions', alors que l'offre exige un anglais professionnel","Aucune certification AMF récente mentionnée avec une date précise","Expérience en finance de marché non explicitement citée (plutôt finance d'entreprise/banque de détail)","Pas de mention d'expérience chez un acteur pure-player IT finance de marché"],"opportunites":["Les 5 ans d'expérience minimum requis sont largement couverts par le parcours","La coordination entre équipes métiers et techniques est une compétence déjà démontrée","Le poste est basé à Paris, cohérent avec la mobilité du profil","L'assurance qualité des livrables est une compétence déjà exercée en environnement bancaire","Passerelle naturelle depuis le PMO bancaire généraliste vers un PMO finance de marché spécialisé"],"menaces":["Le niveau d'anglais 'professionnel indispensable' est un critère éliminatoire potentiel","Concurrence de candidats ayant une expérience specifique en finance de marché","L'absence d'expérience produits dérivés pourrait nécessiter une formation d'appoint rapide","Poste chez un acteur de taille plus restreinte (pure player), culture d'entreprise différente des grands groupes","Le recrutement pourrait privilégier un profil déjà opérationnel sur les produits financiers visés"]},"suggestions":["Actualiser le niveau d'anglais indiqué sur le profil (certification récente recommandée)","Mentionner toute exposition, même limitée, aux produits dérivés ou de taux lors de missions précédentes"]},{"offer_id":"SBYA-O1","trigramme":"SBYA","niveau":"Fort","swot":{"forces":["Expérience directe de gestion de programmes d'innovation agricole (FCIAD, FIRCA)","Suivi de 44 projets innovants sur 23 filières agricoles, échelle comparable au poste visé","Expérience de coordination multi-pays et de relations avec partenaires internationaux (CIRAD, AU-EU IRC)","Diplôme d'ingénieur agronome option agro-économie, cohérent avec le profil recherché","Anglais de bon niveau et français langue maternelle, correspondant aux exigences linguistiques"],"faiblesses":["Pas d'expérience explicite en Afrique de l'Ouest hors Côte d'Ivoire","Aucune mention de connaissance du portugais, cité comme atout","Pas d'expérience directe du secteur agro-intrants (engrais, semences, produits phytosanitaires)","Expérience de management d'équipe multi-pays non quantifiée précisément","Pas de certification en gestion de projet type PMP mentionnée à ce stade du parcours (obtenue plus tard)"],"opportunites":["Le pilotage de fonds compétitifs pour l'innovation est directement transférable à la gestion de pipeline d'innovation","L'expérience de gouvernance (comités, KPI) correspond à l'établissement d'une gouvernance d'innovation structurée","Le profil est basé à Abidjan, cohérent avec la localisation du poste","La double compétence agronomie + coordination de programmes est rare et très recherchée","Progression naturelle vers un rôle de pilotage de l'innovation à l'échelle d'un groupe multi-pays"],"menaces":["Le secteur agro-intrants privé diffère du secteur institutionnel/recherche agricole du parcours actuel","Concurrence de profils issus directement du secteur privé agro-industriel","L'absence de portugais pourrait limiter la couverture de certains pays de la zone","Le poste demande une disponibilité à voyager sur plusieurs marchés africains","Transition d'un environnement institutionnel vers un environnement commercial privé à anticiper"]},"suggestions":[]},{"offer_id":"SBYA-O2","trigramme":"SBYA","niveau":"Moyen","swot":{"forces":["Diplôme d'ingénieur agronome, formation de base directement pertinente","Expérience de terrain initiale documentée (stages SCB, Cabinet Le Mont Horeb)","Expérience de gestion de programmes agricoles avec des bailleurs internationaux","Français langue maternelle, utile pour ce poste basé au Cameroun francophone","Habitude du travail en contexte de développement rural et de renforcement de capacités"],"faiblesses":["Poste actuel de niveau stratégique (direction), potentiellement en décalage avec un rôle terrain de spécialiste","Aucune expérience explicite avec le Conseil Danois pour les Réfugiés ou le secteur humanitaire","Pas de mention d'expérience directe en activités génératrices de revenus agricoles","Pas de mention de connaissance des procédures ECREC ou de standards humanitaires","Expérience récente concentrée sur la Côte d'Ivoire plutôt que le Cameroun"],"opportunites":["Le socle agronomique et de gestion de projet est solide et transférable","L'expérience de renforcement de capacités techniques est directement pertinente","Le poste pourrait valoriser l'expérience de coordination multi-acteurs déjà démontrée","Passerelle possible du secteur institutionnel ivoirien vers le secteur humanitaire international","Diversification géographique du profil (Afrique de l'Ouest vers Afrique Centrale)"],"menaces":["Le poste est un rôle plus opérationnel/terrain que les responsabilités actuelles de direction","Le contrat national et le niveau de rémunération pourraient être en retrait par rapport au poste actuel","Concurrence de profils déjà expérimentés dans le secteur humanitaire","Absence de réseau démontré avec les acteurs humanitaires (DRC, APROSPEN)","Décalage de niveau hiérarchique pouvant freiner la candidature ou l'entretien"]},"suggestions":["Préciser toute expérience de terrain plus récente en riziculture, cultures vivrières ou activités génératrices de revenus","Mentionner une éventuelle connaissance du secteur humanitaire ou des bailleurs présents en zone Adamaoua/Est"]},{"offer_id":"SBYA-O3","trigramme":"SBYA","niveau":"Moyen","swot":{"forces":["Diplôme d'agronomie approfondie option agroéconomie, base académique alignée","Expérience de diagnostic de systèmes de production (stage de fin d'études sur l'anacardier)","Français indispensable maîtrisé nativement","Compréhension déjà démontrée des écosystèmes agricoles ivoiriens","Habitude de la collaboration avec organismes de recherche et institutions agricoles"],"faiblesses":["Aucune expérience explicite en riziculture pluviale, cœur de métier de l'offre","Pas de mention de maîtrise d'outils SIG ou d'applications mobiles de suivi de parcelles","Le poste actuel est un rôle de direction, potentiellement trop senior par rapport au poste terrain visé","Pas de mention de formation ou expérience en machinisme agricole spécifique","Anglais 'bon niveau' mais non spécifié comme atout dans le contexte de l'offre"],"opportunites":["La formation agronomique de base couvre les fondamentaux attendus","L'expérience de gestion de programmes agricoles est transférable à la coordination technique demandée","Connaissance du contexte agricole ivoirien déjà établie","Passerelle possible vers un rôle plus technique si le candidat souhaite se repositionner","Réseau déjà existant avec les organismes de recherche locaux (CNRA, universités)"],"menaces":["Écart important entre le niveau hiérarchique actuel et le poste visé, plus opérationnel","Concurrence de profils spécialisés en riziculture pluviale avec expérience terrain récente","Absence de compétences SIG explicitement mentionnées, potentiellement recherchées","Rémunération et positionnement du poste probablement en retrait par rapport au poste actuel","Risque de perception de surqualification par le recruteur"]},"suggestions":["Ajouter toute expérience spécifique en riziculture pluviale si elle existe mais n'est pas documentée sur le CV","Mentionner une éventuelle maîtrise d'outils SIG (déjà utilisés par ailleurs : MapInfo, ArcGiz, Philcarto)"]},{"offer_id":"SBYA-O4","trigramme":"SBYA","niveau":"Fort","swot":{"forces":["Pilotage en cours de la transformation digitale du FIRCA avec Microsoft 365 et applications métier","Double compétence agronomie et systèmes d'information, exactement le profil recherché","Expérience de coordination d'audit informatique et de modernisation de bases de données","Formation d'ingénieur agronome, correspondant au Bac+4/5 Agronomie demandé","Expérience de gestion de projets avec des enjeux techniques et organisationnels combinés"],"faiblesses":["Aucune mention explicite de connaissance de SAP ou de ses modules (RE-FX/MM/SD/PP/PM/HCM)","Expérience actuelle orientée pilotage stratégique plutôt que support utilisateur de premier niveau","Pas de certification SAP mentionnée dans le parcours","Le poste implique une résolution directe des soucis techniques métier, plus opérationnelle","3 ans d'expérience SAP minimum requis, non démontrés explicitement"],"opportunites":["La transformation digitale FIRCA constitue une expérience directement valorisable pour ce poste SAP AGRO","Le profil est basé en Côte d'Ivoire, proche du Ghana/zone SIFCA Abidjan","Progression naturelle depuis la direction SI vers un rôle d'expertise SAP Agro","Combinaison rare agronomie + SI recherchée par peu de candidats","Le secteur agro-industriel ivoirien est un environnement déjà connu du profil"],"menaces":["Date limite de candidature courte (14 août 2026)","Concurrence de profils SAP certifiés avec 3 ans d'expérience dédiée","Le poste est plus opérationnel que le rôle actuel de direction, possible décalage d'attentes salariales","L'absence de certification SAP pourrait être éliminatoire dans un premier tri","Risque de sur-qualification perçue par le recruteur au vu du niveau de poste actuel"]},"suggestions":["Ajouter toute formation ou certification SAP suivie, même informelle","Préciser les modules SI utilisés lors du pilotage de la transformation digitale du FIRCA"]},{"offer_id":"SBYA-O5","trigramme":"SBYA","niveau":"Fort","swot":{"forces":["Expérience approfondie de gestion de programmes agricoles financés par des bailleurs internationaux","Connaissance du contexte institutionnel ministériel (similaire au Ministère de l'Agriculture du Bénin)","Expérience de coordination de projets multi-composantes avec suivi budgétaire","Habitude des relations avec bailleurs de fonds internationaux (BAD, AFD)","Diplôme d'ingénieur agronome et expérience de suivi-évaluation de projets"],"faiblesses":["Aucune expérience explicite au Bénin ou dans la zone de Savane concernée par le projet","Pas de mention d'expérience directe avec la Banque Africaine de Développement en tant que bailleur","Le poste est un contrat de consultant individuel, différent du statut salarié actuel","Pas d'expérience explicite sur les filières maïs, soja ou volaille visées par le projet","Aucune certification en passation des marchés ou sauvegardes environnementales et sociales mentionnée"],"opportunites":["L'expérience de coordination de projets à enjeux multiples est directement transférable","La double compétence agronomie et gestion de programmes correspond au profil de coordonnateur recherché","Réseau déjà développé avec les bailleurs internationaux dans le secteur agricole","Le poste offre une exposition régionale intéressante (Afrique de l'Ouest élargie)","Passerelle possible vers un rôle de coordination de projet de développement financé par bailleur"],"menaces":["Le statut de consultant individuel implique une moindre stabilité que le poste salarié actuel","Concurrence de candidats ayant une expérience spécifique avec la BAD","Contrat d'un an renouvelable, à mettre en perspective avec la progression de carrière actuelle","Nécessité de mobilité vers le Bénin, à valider avec la situation personnelle du candidat","Absence de spécialisation sur les filières précises du projet (maïs, soja, volaille)"]},"suggestions":[]},{"offer_id":"GMAN-O1","trigramme":"GMAN","niveau":"Fort","swot":{"forces":["Expérience actuelle de développement du chiffre d'affaires VMware chez Dell, rôle très proche","Expérience antérieure de Services Business Manager chez VMware sur zone France/Italie/Afrique du Sud","Habitude de la gestion de partenaires stratégiques et de la collaboration avec équipes commerciales","Français et anglais courants, correspondant aux exigences du poste","Track record démontré (Most Valuable Player, reconnaissance équipe EMEA)"],"faiblesses":["Expérience construite sur l'écosystème VMware, pas directement sur l'écosystème Snowflake/Data & IA","Pas de mention explicite de connaissance des partenariats GSI/RSI tels que définis chez Snowflake","Pas de certification Data/Cloud (Snowflake, AWS, Azure) mentionnée dans le parcours","Expérience de management d'équipe partenaires non quantifiée précisément en nombre de personnes","Positionnement actuel plus généraliste infrastructure que spécialiste data/IA"],"opportunites":["Les compétences de gestion de partenaires et de développement commercial sont directement transférables","Le marché français du cloud/data est un environnement déjà connu du profil","Progression naturelle d'un poste de gestion de partenaires VMware vers un poste équivalent chez un leader Data & IA","La proximité géographique (France) correspond à la localisation actuelle","Réseau déjà constitué dans l'écosystème IT français pouvant faciliter la prise de poste"],"menaces":["Concurrence de profils déjà issus de l'écosystème Data & IA (Snowflake, Databricks, etc.)","La montée en compétence sur le positionnement Snowflake pourrait prendre du temps","Le marché du partenariat data est en évolution rapide, nécessitant une veille active","Risque de perception d'un profil trop generaliste infrastructure pour un poste Data & IA","Objectifs de croissance ambitieux (marché stratégique EMEA) impliquant une forte pression sur les résultats"]},"suggestions":["Mettre en avant toute exposition récente aux sujets data/cloud/IA, même en tant que partenaire ou intégrateur","Ajouter des chiffres précis sur la taille des équipes partenaires gérées"]},{"offer_id":"GMAN-O2","trigramme":"GMAN","niveau":"Faible","swot":{"forces":["Solide expérience commerciale internationale (5+ ans requis, largement couverts)","Anglais et français courants, correspondant aux exigences linguistiques","Expérience de développement de réseaux de distribution et de gestion de partenaires clés","Habitude du reporting commercial et du suivi de pipeline","Expérience de management d'équipe commerciale"],"faiblesses":["Aucune expérience dans le secteur de l'irrigation ou du golf","Pas de connaissance démontrée du marché des équipements golf/paysagers","Pas de diplôme technique ou commercial explicitement en lien avec ce secteur","Expérience construite sur la vente de logiciels/services IT, univers différent du produit physique","Aucun réseau démontré dans l'industrie du golf ou de l'irrigation"],"opportunites":["Les compétences commerciales et de gestion de territoire restent transférables","Le poste implique une forte dimension internationale, cohérente avec le profil","Passerelle possible d'un secteur IT vers un secteur industriel via les compétences de vente B2B"],"menaces":["Décalage sectoriel majeur (IT/logiciel vers irrigation/golf) difficile à justifier auprès du recruteur","Concurrence de profils déjà issus du secteur agricole, paysager ou sportif","Risque de non-sélection dès le premier filtrage CV faute d'expérience sectorielle","Nécessité de déplacements 50-70% du temps, à valider avec les contraintes personnelles","Montée en compétence produit (irrigation) longue et non garantie"]},"suggestions":[]},{"offer_id":"GMAN-O3","trigramme":"GMAN","niveau":"Moyen","swot":{"forces":["Expérience de gestion de la relation client stratégique de longue durée (VMware, Dell)","Habitude de la compréhension des priorités techniques et business des clients","Anglais et français courants, adaptés à un poste basé en France avec exposition internationale","Expérience de collaboration avec équipes support, delivery et produit","Track record de fidélisation et de développement de comptes stratégiques"],"faiblesses":["Aucune expérience directe avec les plateformes d'expérience client (Genesys Cloud CX ou équivalent)","Profil orienté vente/partenariat plutôt que gestion technique de compte au quotidien","Pas de certification technique Genesys ou équivalent CX mentionnée","Pas d'expérience explicite en résolution de problèmes techniques complexes côté client","Positionnement actuel plus commercial que 'trusted advisor' technique"],"opportunites":["Les compétences relationnelles et de gestion de compte stratégique sont hautement transférables","Le poste valorise la compréhension business des clients, point fort du profil","Passerelle possible d'un rôle commercial vers un rôle de Technical Account Manager avec formation d'appoint","Le secteur de l'expérience client orchestrée par l'IA est en forte croissance","Réseau professionnel déjà constitué dans l'écosystème IT français"],"menaces":["Concurrence de profils techniques ayant déjà occupé un poste de TAM","La montée en compétence technique sur Genesys Cloud CX pourrait prendre plusieurs mois","Risque de repositionnement salarial en changeant de filière (vente vers support technique)","Les 6 à 12 premiers mois du poste demandent une forte autonomie technique","Décalage possible entre les attentes du poste (technique) et le profil commercial dominant"]},"suggestions":["Mettre en avant toute expérience de résolution de problèmes techniques complexes côté client","Envisager une certification courte sur les plateformes CX ou le support technique avancé"]},{"offer_id":"MCHA-O1","trigramme":"MCHA","niveau":"Moyen","swot":{"forces":["Solide expérience d'architecture d'entreprise et de gouvernance SI (TOGAF, MDM, ESB)","Expérience de pilotage de programmes de transformation SI à grande échelle (SNCF, Econocom)","Habitude du cadrage et du chiffrage de projets au forfait","Compétences en gouvernance de la donnée déjà démontrées (Data Governance)","Expérience de management d'équipes de consultants (jusqu'à 25 personnes)"],"faiblesses":["Pas d'expérience hands-on explicitement démontrée sur Spark, Kafka ou les architectures Data Lake modernes","Positionnement actuel plus exécutif/gouvernance que technique opérationnel","Aucune certification cloud (AWS, Azure, GCP) mentionnée dans le parcours","Pas de mention d'outils comme Airflow, dbt, Snowflake ou Databricks","Expérience de deploiement cloud non explicitement quantifiée"],"opportunites":["L'expérience de cadrage et de chiffrage de projets au forfait correspond exactement à une partie du poste","La gouvernance de la donnée déjà pratiquée est un prérequis du poste (RGPD, sécurité)","Le profil pourrait apporter une dimension stratégique complémentaire à l'équipe technique existante","Passerelle possible depuis un rôle de Design Authority vers un rôle d'architecte data en environnement forfait","Réseau déjà constitué avec de grands comptes (BNP Paribas, Allianz, Nexter)"],"menaces":["Concurrence de profils d'architectes data techniques ayant une pratique hands-on récente","Risque de décalage entre les attentes techniques du poste et le profil davantage gouvernance/stratégie","L'absence de certifications cloud pourrait être un critère de sélection important","Le poste exige plus de 12 ans d'expérience data, à valider précisément sur la partie technique","Repositionnement possible d'un rôle de direction vers un rôle plus technique à anticiper avec le recruteur"]},"suggestions":["Ajouter des exemples concrets de projets impliquant des architectures Data Lake ou Lakehouse","Envisager une certification cloud (AWS/Azure/GCP) pour renforcer la crédibilité technique","Préciser toute expérience avec des outils modernes de data engineering (Airflow, dbt, Spark)"]},{"offer_id":"MCHA-O2","trigramme":"CMAG","niveau":"Moyen","swot":{"forces":["Expérience de direction générale et des opérations (DGA) avec pilotage de P&L","Expérience de développement commercial et international démontrée (Espagne, Bolivie, Afrique, Chine)","Track record de croissance chiffrée (CA multiplié par 6 chez DEKRA, +175% chez Mister Brumiz)","Expérience de management d'équipes commerciales (jusqu'à 35 collaborateurs)","Habitude du pilotage d'appels d'offres et du développement de portefeuilles clients"],"faiblesses":["Aucune expérience explicite dans le secteur Énergie & Utilities","Pas de connaissance démontrée des interlocuteurs DSI/Acheteurs spécifiques à ce secteur","Expérience construite dans des secteurs variés (auto, digital, marketing) mais pas ESN","Pas de mention d'encadrement direct de Business Managers Juniors en particulier","Pas de plan de commissionnement variable démontré dans le parcours antérieur"],"opportunites":["Les compétences de pilotage de BU et de P&L sont directement transférables au poste","L'expérience de développement commercial international est un atout pour un poste de direction de BU","Passerelle possible d'un profil généraliste transformation vers un poste sectoriel via une montée en compétence rapide","Le profil a démontré sa capacité à faire croître des activités variées","Expérience de management de forte croissance directement pertinente pour les objectifs du poste"],"menaces":["Concurrence de profils déjà issus du secteur Énergie/Utilities ou d'une ESN","Risque de perception d'un profil trop généraliste pour un poste sectoriel spécialisé","La montée en compétence sur le secteur Énergie & Utilities pourrait prendre plusieurs mois","Absence de réseau démontré sur ce secteur précis, à reconstruire","Objectifs de rentabilité (marge brute, TJM) à démontrer rapidement dans un secteur inconnu"]},"suggestions":["Mettre en avant toute mission ou client passé dans le secteur Énergie ou Utilities, même ponctuel","Ajouter des éléments chiffrés sur la gestion de P&L en environnement ESN si applicable"]},{"offer_id":"MCHA-O3","trigramme":"MCHA","niveau":"Fort","swot":{"forces":["Expérience directe et récente de direction de programmes SI au forfait (SNCF, Econocom)","Habitude de porter des engagements contractuels et financiers (P&L, marges, risques)","Expérience de management de chefs de projet et de grandes équipes de consultants","Formation supérieure (Master CNAM) et certifications reconnues (PMP, TOGAF, ITIL)","Expérience avérée en environnements grands comptes (BNP Paribas, Allianz, Nexter Systems)"],"faiblesses":["Positionnement actuel plus proche du conseil exécutif que de la direction opérationnelle multi-projets","Pas de mention explicite d'activité d'avant-vente ou de réponse à appels d'offres récente","Expérience de relation client principalement en environnement de mission longue plutôt que multi-clients","Pas de certification ou expérience explicitement citée sur le secteur public en particulier","Rémunération et niveau de poste actuel (Fondateur & Executive Advisor) pouvant nécessiter un repositionnement"],"opportunites":["L'expérience de pilotage de grands programmes au forfait correspond exactement aux responsabilités du poste","Le réseau de grands comptes déjà constitué facilite le développement de l'activité commerciale","Passerelle naturelle d'un rôle de conseil exécutif vers un rôle de direction de projets en ESN","Les certifications PMP/TOGAF/ITIL renforcent la crédibilité immédiate auprès des clients","Le poste offre une évolution vers un rôle de direction de programmes puis de Vice-Président, cohérent avec la trajectoire"],"menaces":["Concurrence de profils déjà en poste de direction de projets dans une ESN équivalente","Risque de décalage d'attentes salariales entre le statut actuel de fondateur et un poste salarié","Nécessité de reconstruire une activité d'avant-vente si elle n'a pas été pratiquée récemment","Le marché du conseil IT est concurrentiel sur les profils seniors à forte expertise","Transition d'un rôle entrepreneurial vers un rôle encadré en entreprise à anticiper"]},"suggestions":[]},{"offer_id":"MCHA-O4","trigramme":"MCHA","niveau":"Fort","swot":{"forces":["Expérience directe de transformation SI et de gouvernance dans un grand compte (SNCF Voyageurs)","Expérience de structuration de schéma directeur SI à horizon 10 ans, compétence clé du poste (SDSIN)","Compétences en gouvernance de la donnée déjà démontrées (Data Governance, catalogue, qualité)","Expérience de pilotage de comités COMEX/CODIR sur des arbitrages d'investissement SI","Certifications reconnues (TOGAF, COBIT, ISO 27005/31000) alignées avec les enjeux de sécurité SI"],"faiblesses":["Aucune expérience explicite du secteur public territorial ou des collectivités locales","Pas de mention de connaissance des enjeux d'open data ou de service public numérique","Expérience construite en environnement privé (SNCF reste une entreprise publique mais à gestion privée)","Pas de mention d'expérience de gestion des élus ou d'instances politiques locales","Rémunération et statut (cadre territorial) potentiellement différents du secteur privé habituel"],"opportunites":["L'expérience de structuration de schéma directeur SI est directement transférable au SDSIN","La gouvernance de la donnée déjà pratiquée répond aux enjeux d'ouverture des données publiques","Passerelle possible du secteur privé/parapublic vers le secteur public territorial","Le profil apporte une expertise rare de transformation SI à grande échelle, recherchée par les collectivités","Les enjeux de cybersécurité et de sobriété numérique sont déjà des sujets maîtrisés par le profil"],"menaces":["Concurrence de profils issus directement du secteur public ou des collectivités territoriales","La gestion d'élus et d'instances politiques nécessite des compétences relationnelles spécifiques à acquérir","Le statut de la fonction publique territoriale implique des règles différentes du secteur privé","Risque de décalage de rémunération entre le secteur privé/conseil et la fonction publique territoriale","Délai d'adaptation à la culture et aux processus de décision d'une collectivité locale"]},"suggestions":[]}];
+
+  var DEFAULT_USERS = [
+    { id:"sarah",    prenom:"Sarah",    nom:"Relid",        trigramme:"SREL", role:"user",  firstLogin:true,  passwordHash:null },
+    { id:"clement",  prenom:"Clément",  nom:"Mages",         trigramme:"CMAG", role:"user",  firstLogin:true,  passwordHash:null },
+    { id:"mathieu",  prenom:"Mathieu",  nom:"Chaussée",      trigramme:"MCHA", role:"user",  firstLogin:true,  passwordHash:null },
+    { id:"serge",    prenom:"Serge",    nom:"Brouh Yapo",    trigramme:"SBYA", role:"user",  firstLogin:true,  passwordHash:null },
+    { id:"giuseppe", prenom:"Giuseppe", nom:"Manes",         trigramme:"GMAN", role:"user",  firstLogin:true,  passwordHash:null },
+    { id:"admin",    prenom:"Admin",    nom:"Système",       trigramme:"ASYS", role:"admin", firstLogin:false, passwordHash:null }
+  ];
+
+  var STORAGE_KEY = "po_users_v1";
+  var users = [];
+  var selectedUser = null;
+  var currentSession = null;
+  var viewingTrigramme = null;
+
+  async function hashPassword(pwd){
+    var enc = new TextEncoder().encode(pwd);
+    var buf = await crypto.subtle.digest("SHA-256", enc);
+    var arr = Array.from(new Uint8Array(buf));
+    return arr.map(function(b){ return b.toString(16).padStart(2,"0"); }).join("");
+  }
+
+  function validatePassword(pwd){
+    return { len: pwd.length >= 8, digit: /[0-9]/.test(pwd), upper: /[A-Z]/.test(pwd) };
+  }
+  function isValid(v){ return v.len && v.digit && v.upper; }
+
+  function hasClaudeStorage(){
+    return (typeof window.storage !== "undefined") && window.storage && typeof window.storage.get === "function";
+  }
+
+  async function storageRead(key){
+    if(hasClaudeStorage()){
+      try{ var res = await window.storage.get(key, false); return res ? res.value : null; }
+      catch(e){ return null; }
+    }
+    try{ return window.localStorage.getItem(key); }
+    catch(e){ return null; }
+  }
+
+  async function storageWrite(key, value){
+    if(hasClaudeStorage()){
+      try{ await window.storage.set(key, value, false); return; }
+      catch(e){ /* on tente le repli local */ }
+    }
+    try{ window.localStorage.setItem(key, value); }
+    catch(e){ console.error("Stockage indisponible, session en mémoire uniquement.", e); }
+  }
+
+  async function loadUsers(){
+    var raw = await storageRead(STORAGE_KEY);
+    if(raw){ users = JSON.parse(raw); return; }
+    users = JSON.parse(JSON.stringify(DEFAULT_USERS));
+    var admin = users.find(function(u){ return u.id === "admin"; });
+    admin.passwordHash = await hashPassword("Admin");
+    await saveUsers();
+  }
+
+  async function saveUsers(){
+    await storageWrite(STORAGE_KEY, JSON.stringify(users));
+  }
+
+  function renderGrid(){
+    var grid = document.getElementById("userGrid");
+    grid.innerHTML = "";
+    users.forEach(function(u){
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "user-badge" + (u.role === "admin" ? " is-admin" : "");
+      btn.setAttribute("data-id", u.id);
+      btn.innerHTML =
+        '<span class="tri">' + u.trigramme + '</span>' +
+        '<span class="full-name">' + u.prenom + ' ' + u.nom + '</span>' +
+        '<span class="role-tag">' + (u.role === "admin" ? "Administrateur" : "Utilisateur") + '</span>';
+      btn.addEventListener("click", function(){ selectUser(u.id); });
+      grid.appendChild(btn);
+    });
+  }
+
+  function selectUser(id){
+    selectedUser = users.find(function(u){ return u.id === id; });
+    document.querySelectorAll(".user-badge").forEach(function(b){
+      b.classList.toggle("selected", b.getAttribute("data-id") === id);
+    });
+    var panel = document.getElementById("authPanel");
+    panel.classList.add("open");
+    document.getElementById("whoTri").textContent = selectedUser.trigramme;
+    document.getElementById("whoName").textContent = selectedUser.prenom + " " + selectedUser.nom;
+    showMsg("", "");
+    var needsFirstLogin = !selectedUser.passwordHash;
+    document.getElementById("firstLoginBlock").style.display = needsFirstLogin ? "block" : "none";
+    document.getElementById("loginBlock").style.display = needsFirstLogin ? "none" : "block";
+    document.getElementById("pwdNew").value = "";
+    document.getElementById("pwdNewConfirm").value = "";
+    document.getElementById("pwdLogin").value = "";
+    updateRuleHints("");
+  }
+
+  function updateRuleHints(pwd){
+    var v = validatePassword(pwd);
+    document.getElementById("ruleLen").classList.toggle("ok", v.len);
+    document.getElementById("ruleDigit").classList.toggle("ok", v.digit);
+    document.getElementById("ruleUpper").classList.toggle("ok", v.upper);
+  }
+
+  function showMsg(text, type){
+    var box = document.getElementById("msgBox");
+    if(!text){ box.className = "msg"; box.textContent=""; return; }
+    box.className = "msg show " + type;
+    box.textContent = text;
+  }
+
+  document.getElementById("pwdNew").addEventListener("input", function(e){ updateRuleHints(e.target.value); });
+
+  document.getElementById("btnCreatePwd").addEventListener("click", async function(){
+    var p1 = document.getElementById("pwdNew").value;
+    var p2 = document.getElementById("pwdNewConfirm").value;
+    if(!isValid(validatePassword(p1))){ showMsg("Le mot de passe ne respecte pas les règles ci-dessus.", "error"); return; }
+    if(p1 !== p2){ showMsg("Les deux mots de passe ne correspondent pas.", "error"); return; }
+    selectedUser.passwordHash = await hashPassword(p1);
+    selectedUser.firstLogin = false;
+    await saveUsers();
+    showMsg("Mot de passe créé. Connexion en cours…", "success");
+    setTimeout(function(){ enterApp(selectedUser); }, 500);
+  });
+
+  document.getElementById("btnLogin").addEventListener("click", async function(){
+    var pwd = document.getElementById("pwdLogin").value;
+    if(!pwd){ showMsg("Veuillez saisir votre mot de passe.", "error"); return; }
+    var h = await hashPassword(pwd);
+    if(h === selectedUser.passwordHash){
+      showMsg("Connexion réussie.", "success");
+      setTimeout(function(){ enterApp(selectedUser); }, 350);
+    } else { showMsg("Mot de passe incorrect.", "error"); }
+  });
+
+  function monogram(nomComplet){
+    var parts = nomComplet.trim().split(/\s+/);
+    if(parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+    return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+  }
+
+  function fmtDate(d, fin){
+    if(!d) return "";
+    return d;
+  }
+
+  function renderIdentity(tri){
+    var p = PERSON_DATA[tri].personne;
+    var html = '';
+    html += '<div class="identity-band">';
+    html += '<div class="identity-photo">' + monogram(p.nom_complet || tri) + '</div>';
+    html += '<div class="identity-main">';
+    html += '<h1>' + p.nom_complet + '</h1>';
+    if(p.titre_actuel) html += '<p class="titre">' + p.titre_actuel + '</p>';
+    html += '<div class="identity-contacts">';
+    if(p.email) html += '<span><i class="ti"></i>' + iconMail() + p.email + '</span>';
+    if(p.telephone) html += '<span>' + iconPhone() + p.telephone + '</span>';
+    if(p.ville) html += '<span>' + iconPin() + p.ville + '</span>';
+    if(p.linkedin) html += '<span>' + iconLink() + '<a href="https://' + p.linkedin.replace(/^https?:\/\//,"") + '" target="_blank" rel="noopener">' + p.linkedin + '</a></span>';
+    html += '</div>';
+    if(!p.photo) html += '<p class="no-photo-note">Photo non renseignée dans la base</p>';
+    html += '</div>';
+    html += '<div class="identity-tri">' + tri + '</div>';
+    html += '</div>';
+    return html;
+  }
+
+  function iconMail(){ return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 6l10 7 10-7"/></svg>'; }
+  function iconPhone(){ return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2.1L7.9 9.7a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.5 2.7.6a2 2 0 0 1 1.7 2z"/></svg>'; }
+  function iconPin(){ return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-7.5 8-13a8 8 0 0 0-16 0c0 5.5 8 13 8 13z"/><circle cx="12" cy="9" r="2.5"/></svg>'; }
+  function iconLink(){ return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/><path d="M10 21v-7a3 3 0 0 1 6 0v7M10 12v-2M22 21v-6a4 4 0 0 0-4-4"/></svg>'; }
+  function iconTrophy(){ return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 5H4a3 3 0 0 0 3 5M17 5h3a3 3 0 0 1-3 5"/></svg>'; }
+
+  function renderExperiences(tri){
+    var d = PERSON_DATA[tri];
+    var html = '<div><div class="section-title">Expérience <span class="count">' + d.experiences.length + '</span></div><div class="timeline">';
+    if(d.experiences.length === 0) html += '<p class="empty-note">Aucune expérience renseignée.</p>';
+    d.experiences.forEach(function(e){
+      html += '<div class="tl-node">';
+      html += '<h3>' + e.poste + '</h3>';
+      html += '<p class="employeur">' + e.employeur + '</p>';
+      html += '<div class="tl-meta">' + e.debut + ' → ' + (e.fin || 'Aujourd\'hui') + (e.lieu ? ' · ' + e.lieu : '') + '</div>';
+      if(e.secteur || e.fonction){
+        html += '<div class="tl-tags">';
+        if(e.secteur) html += '<span>' + e.secteur + '</span>';
+        if(e.fonction) html += '<span>' + e.fonction + '</span>';
+        html += '</div>';
+      }
+      if(e.missions && e.missions.length){
+        html += '<ul class="tl-missions">';
+        e.missions.forEach(function(m){ html += '<li>' + m + '</li>'; });
+        html += '</ul>';
+      }
+      var reals = d.realisations.filter(function(r){ return r.experience_id === e.id; });
+      if(reals.length){
+        html += '<div class="tl-realisations">';
+        reals.forEach(function(r){
+          html += '<div class="tl-real">' + iconTrophy() + '<span>' + r.description + (r.resultat ? '<span class="res">' + r.resultat + '</span>' : '') + '</span></div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div></div>';
+    return html;
+  }
+
+  function renderCompetences(tri){
+    var comps = PERSON_DATA[tri].competences;
+    var cats = [
+      {key:"technique", label:"Techniques"},
+      {key:"fonctionnelle", label:"Fonctionnelles"},
+      {key:"transverse", label:"Transverses"},
+      {key:"linguistique", label:"Linguistiques"}
+    ];
+    var html = '<div class="side-panel"><div class="section-title">Compétences <span class="count">' + comps.length + '</span></div>';
+    if(comps.length === 0) html += '<p class="empty-note">Aucune compétence renseignée.</p>';
+    cats.forEach(function(c){
+      var list = comps.filter(function(x){ return (x.categorie||"").toLowerCase() === c.key; });
+      if(!list.length) return;
+      html += '<div class="comp-group"><h4>' + c.label + ' (' + list.length + ')</h4><div class="comp-pills">';
+      list.forEach(function(x){
+        html += '<span' + (x.niveau ? ' class="niveau" data-niveau="' + x.niveau + '"' : '') + '>' + x.libelle + '</span>';
+      });
+      html += '</div></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function renderFormations(tri){
+    var list = PERSON_DATA[tri].formations;
+    var html = '<div class="side-panel"><div class="section-title">Formation &amp; certifications <span class="count">' + list.length + '</span></div>';
+    if(list.length === 0) html += '<p class="empty-note">Aucune formation renseignée.</p>';
+    list.forEach(function(f){
+      html += '<div class="fc-item"><div class="fc-main">';
+      html += '<span class="fc-tag">' + (f.type === "certification" ? "Certif." : "Formation") + '</span>';
+      html += '<div class="fc-title">' + f.intitule + '</div>';
+      if(f.etablissement) html += '<div class="fc-sub">' + f.etablissement + '</div>';
+      html += '</div><div class="fc-year">' + (f.annee || '') + '</div></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function renderLangues(tri){
+    var list = PERSON_DATA[tri].langues;
+    var html = '<div class="side-panel"><div class="section-title">Langues <span class="count">' + list.length + '</span></div>';
+    if(list.length === 0) html += '<p class="empty-note">Aucune langue renseignée.</p>';
+    list.forEach(function(l){
+      html += '<div class="lang-item"><span>' + l.langue + '</span><span class="niv">' + (l.niveau || '') + '</span></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function renderProfile(tri){
+    viewingTrigramme = tri;
+    var wrap = document.getElementById("profileWrap");
+    var html = '';
+    html += renderIdentity(tri);
+    html += '<div class="profile-grid">';
+    html += '<div>' + renderExperiences(tri) + '</div>';
+    html += '<div>' + renderCompetences(tri) + renderFormations(tri) + renderLangues(tri) + '</div>';
+    html += '</div>';
+    wrap.innerHTML = html;
+  }
+
+  var adminChosenTrigramme = null;
+
+  function currentTargetTrigramme(){
+    if(currentSession && currentSession.role === "admin"){
+      return adminChosenTrigramme;
+    }
+    return currentSession ? currentSession.trigramme : null;
+  }
+
+  function renderProfilePicker(){
+    var grid = document.getElementById("profilePickerGrid");
+    grid.innerHTML = "";
+    users.filter(function(u){ return u.role !== "admin"; }).forEach(function(u){
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "profile-btn";
+      btn.innerHTML = '<span class="mono">' + monogram(u.prenom + " " + u.nom) + '</span><span class="nm">' + u.prenom + " " + u.nom + '</span>';
+      btn.addEventListener("click", function(){
+        adminChosenTrigramme = u.trigramme;
+        showPanel("parcours");
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  function showPanel(name){
+    document.getElementById("panelParcours").style.display = name === "parcours" ? "block" : "none";
+    document.getElementById("panelOffres").style.display = name === "offres" ? "block" : "none";
+    document.getElementById("panelOffreDetail").style.display = name === "offreDetail" ? "block" : "none";
+    document.getElementById("panelAdequation").style.display = name === "adequation" ? "block" : "none";
+    document.getElementById("panelAdequationDetail").style.display = name === "adequationDetail" ? "block" : "none";
+    document.getElementById("navParcours").classList.toggle("active", name === "parcours");
+    document.getElementById("navOffres").classList.toggle("active", name === "offres" || name === "offreDetail");
+    document.getElementById("navAdequation").classList.toggle("active", name === "adequation" || name === "adequationDetail");
+    if(name === "parcours"){
+      var isAdmin = currentSession && currentSession.role === "admin";
+      var tri = currentTargetTrigramme();
+      var picker = document.getElementById("profilePicker");
+      var wrap = document.getElementById("profileWrap");
+      if(isAdmin && !tri){
+        picker.style.display = "block";
+        wrap.style.display = "none";
+        renderProfilePicker();
+      } else {
+        picker.style.display = "none";
+        wrap.style.display = "block";
+        renderProfile(tri);
+        if(isAdmin){
+          wrap.innerHTML = '<button type="button" class="back-to-picker" id="btnBackPicker"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Changer de profil</button>' + wrap.innerHTML;
+          document.getElementById("btnBackPicker").addEventListener("click", function(){
+            adminChosenTrigramme = null;
+            showPanel("parcours");
+          });
+        }
+      }
+    }
+    if(name === "offres"){ renderOffersList(); }
+    if(name === "adequation"){ renderAdequationList(); }
+  }
+
+  document.getElementById("navParcours").addEventListener("click", function(){ showPanel("parcours"); });
+  document.getElementById("navOffres").addEventListener("click", function(){ showPanel("offres"); });
+  document.getElementById("btnBackOffres").addEventListener("click", function(){ showPanel("offres"); });
+  document.getElementById("navAdequation").addEventListener("click", function(){ showPanel("adequation"); });
+  document.getElementById("btnBackAdequation").addEventListener("click", function(){ showPanel("adequation"); });
+
+  function offersForTrigramme(tri){
+    return OFFERS_DATA;
+  }
+
+  var NA = "Information indisponible";
+  function orNA(v){ return v ? v : NA; }
+
+  function renderOffersList(){
+    var grid = document.getElementById("offersGrid");
+    grid.innerHTML = "";
+    var list = OFFERS_DATA;
+    if(!list.length){
+      grid.innerHTML = '<p class="empty-note">Aucune offre disponible.</p>';
+      return;
+    }
+    list.forEach(function(o){
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "offer-btn";
+      var tags = '<span>' + orNA(o.contrat) + '</span><span>' + orNA(o.lieu) + '</span>';
+      btn.innerHTML = '<p class="ttl">' + o.titre_poste + '</p><p class="co">' + orNA(o.societe) + '</p><div class="tags">' + tags + '</div>';
+      btn.addEventListener("click", function(){ renderOfferDetail(o.id); showPanel("offreDetail"); });
+      grid.appendChild(btn);
+    });
+  }
+
+  function renderOfferDetail(offerId){
+    var o = OFFERS_DATA.find(function(x){ return x.id === offerId; });
+    var wrap = document.getElementById("offerCardWrap");
+    if(!o){ wrap.innerHTML = '<p class="empty-note">Offre introuvable.</p>'; return; }
+
+    function listBlock(title, items){
+      var html = '<div class="offer-section"><h3>' + title + '</h3>';
+      if(!items || !items.length){
+        html += '<p class="empty-note">' + NA + '</p>';
+      } else {
+        html += '<ul>';
+        items.forEach(function(i){ html += '<li>' + i + '</li>'; });
+        html += '</ul>';
+      }
+      html += '</div>';
+      return html;
+    }
+    function textBlock(title, text){
+      return '<div class="offer-section"><h3>' + title + '</h3><p' + (text ? '' : ' class="empty-note"') + '>' + orNA(text) + '</p></div>';
+    }
+
+    var facts = "";
+    facts += '<span>' + orNA(o.contrat) + '</span>';
+    facts += '<span>' + orNA(o.lieu) + '</span>';
+    facts += '<span>' + orNA(o.salaire) + '</span>';
+    facts += '<span>' + (o.experience ? o.experience + " d'expérience" : NA) + '</span>';
+    facts += '<span>' + orNA(o.teletravail) + '</span>';
+    facts += '<span>Limite : ' + orNA(o.date_limite) + '</span>';
+
+    var html = '';
+    html += '<p class="eyebrow">' + orNA(o.secteur) + '</p>';
+    html += '<h2>' + o.titre_poste + '</h2>';
+    html += '<p class="co">' + orNA(o.societe) + '</p>';
+    html += '<div class="offer-facts">' + facts + '</div>';
+    html += listBlock("Missions", o.missions);
+    html += listBlock("Profil recherché", o.profil);
+    html += listBlock("Compétences attendues", o.competences);
+    html += textBlock("Entreprise", o.entreprise);
+    html += '<div class="offer-source"><a href="' + (o.source_url || "#") + '" target="_blank" rel="noopener">' +
+      (o.source_url ? "Voir l'annonce source ↗" : NA) + '</a></div>';
+
+    wrap.innerHTML = '<div class="offer-card">' + html + '</div>';
+  }
+
+  function offerTitleById(offerId){
+    var o = OFFERS_DATA.find(function(x){ return x.id === offerId; });
+    return o ? o.titre_poste : offerId;
+  }
+  function offerSocieteById(offerId){
+    var o = OFFERS_DATA.find(function(x){ return x.id === offerId; });
+    return o ? orNA(o.societe) : "";
+  }
+
+  function niveauBadge(niveau){
+    var cls = niveau === "Fort" ? "fort" : (niveau === "Moyen" ? "moyen" : "faible");
+    return '<span class="niveau-badge ' + cls + '">' + niveau + '</span>';
+  }
+
+  function renderAdequationList(){
+    var isAdmin = currentSession && currentSession.role === "admin";
+    var grid = document.getElementById("adequationGrid");
+    var title = document.getElementById("adequationTitle");
+    var lead = document.getElementById("adequationLead");
+    grid.innerHTML = "";
+
+    if(isAdmin){
+      title.textContent = "Adéquation — meilleur profil par offre";
+      lead.textContent = "Pour chaque offre, le profil le plus adapté parmi l'équipe, avec son niveau de correspondance.";
+      OFFERS_DATA.forEach(function(o){
+        var m = MATCHES_DATA.find(function(x){ return x.offer_id === o.id; });
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "offer-btn";
+        if(m){
+          btn.innerHTML = '<p class="ttl">' + o.titre_poste + '</p><p class="co">' + orNA(o.societe) + '</p><div class="tags">' + niveauBadge(m.niveau) + '<span>Profil : ' + m.trigramme + '</span></div>';
+          btn.addEventListener("click", function(){ renderAdequationDetail(m); showPanel("adequationDetail"); });
+        } else {
+          btn.innerHTML = '<p class="ttl">' + o.titre_poste + '</p><p class="co">' + orNA(o.societe) + '</p><div class="tags"><span>' + NA + '</span></div>';
+          btn.disabled = true;
+        }
+        grid.appendChild(btn);
+      });
+    } else {
+      var tri = currentTargetTrigramme();
+      title.textContent = "Adéquation avec mon profil";
+      lead.textContent = "Les offres qui correspondent le mieux à votre parcours, avec l'analyse SWOT associée.";
+      var list = MATCHES_DATA.filter(function(m){ return m.trigramme === tri && m.niveau !== "Faible"; });
+      if(!list.length){
+        grid.innerHTML = '<p class="empty-note">Aucune correspondance identifiée pour le moment.</p>';
+        return;
+      }
+      list.forEach(function(m){
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "offer-btn";
+        btn.innerHTML = '<p class="ttl">' + offerTitleById(m.offer_id) + '</p><p class="co">' + offerSocieteById(m.offer_id) + '</p><div class="tags">' + niveauBadge(m.niveau) + '</div>';
+        btn.addEventListener("click", function(){ renderAdequationDetail(m); showPanel("adequationDetail"); });
+        grid.appendChild(btn);
+      });
+    }
+  }
+
+  function swotQuad(cls, label, items){
+    var html = '<div class="swot-quad ' + cls + '"><h4>' + label + '</h4><ul>';
+    (items || []).forEach(function(i){ html += '<li>' + i + '</li>'; });
+    html += '</ul></div>';
+    return html;
+  }
+
+  function renderAdequationDetail(m){
+    var wrap = document.getElementById("adequationCardWrap");
+    var html = '';
+    html += '<p class="eyebrow">Analyse d\'adéquation · Profil ' + m.trigramme + '</p>';
+    html += '<h2>' + offerTitleById(m.offer_id) + '</h2>';
+    html += '<p class="co">' + offerSocieteById(m.offer_id) + '</p>';
+    html += '<div class="offer-facts">' + niveauBadge(m.niveau) + '</div>';
+    html += '<div class="swot-grid">';
+    html += swotQuad("forces", "Forces", m.swot.forces);
+    html += swotQuad("faiblesses", "Faiblesses", m.swot.faiblesses);
+    html += swotQuad("opportunites", "Opportunités", m.swot.opportunites);
+    html += swotQuad("menaces", "Menaces", m.swot.menaces);
+    html += '</div>';
+    if(m.suggestions && m.suggestions.length){
+      html += '<div class="suggestions-block"><h3>Suggestions d\'amélioration</h3><ul>';
+      m.suggestions.forEach(function(s){ html += '<li>' + s + '</li>'; });
+      html += '</ul></div>';
+    }
+    wrap.innerHTML = '<div class="offer-card">' + html + '</div>';
+  }
+
+  function enterApp(user){
+    currentSession = user;
+    document.getElementById("view-login").style.display = "none";
+    document.getElementById("view-app").classList.add("open");
+    document.getElementById("appTri").textContent = user.trigramme;
+    document.getElementById("appName").textContent = user.prenom + " " + user.nom;
+    document.getElementById("appRole").textContent = user.role === "admin" ? "Administrateur" : "Utilisateur";
+
+    var adminSwitch = document.getElementById("adminSwitch");
+    adminChosenTrigramme = null;
+    if(user.role === "admin"){
+      adminSwitch.style.display = "block";
+    } else {
+      adminSwitch.style.display = "none";
+    }
+    showPanel("parcours");
+  }
+
+  document.getElementById("btnLogout").addEventListener("click", function(){
+    currentSession = null;
+    selectedUser = null;
+    document.getElementById("view-app").classList.remove("open");
+    document.getElementById("view-login").style.display = "grid";
+    document.getElementById("authPanel").classList.remove("open");
+    document.querySelectorAll(".user-badge").forEach(function(b){ b.classList.remove("selected"); });
+  });
+
+  document.getElementById("btnResetDemo").addEventListener("click", async function(){
+    await loadUsers();
+    renderGrid();
+    document.getElementById("authPanel").classList.remove("open");
+  });
+
+  (async function init(){ await loadUsers(); renderGrid(); })();
+
+})();
+</script>
+</body>
+</html>
