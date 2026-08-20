@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi backlog — Copilote IA Carrière</title>
+<style>
+  :root{
+    --ink:#1f2a30;
+    --ink-soft:#5b6b72;
+    --line:#dde3e3;
+    --paper:#f6f5f1;
+    --card:#ffffff;
+    --navy:#1f4e78;
+    --navy-soft:#e6eef4;
+    --must:#993c1d; --must-bg:#faece7;
+    --should:#854f0b; --should-bg:#faeeda;
+    --could:#0f6e56; --could-bg:#e1f5ee;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    background:var(--paper); color:var(--ink); padding:1.5rem;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+  header{margin-bottom:1.25rem;}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px;color:var(--navy);}
+  .sub{font-size:13px;color:var(--ink-soft);margin:0;}
+  .toolbar{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    margin:1rem 0 1.25rem;padding:10px 12px;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);
+  }
+  .toolbar-group{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .toolbar-label{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-right:2px;}
+  .chip{
+    border:1px solid var(--line); background:#fff; color:var(--ink-soft);
+    font-size:12px; padding:5px 11px; border-radius:999px; cursor:pointer;
+    transition:all .15s;
+  }
+  .chip:hover{border-color:var(--navy);}
+  .chip.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .spacer{flex:1;}
+  .reset-btn{
+    font-size:12px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:6px 12px;border-radius:var(--radius);cursor:pointer;
+  }
+  .reset-btn:hover{border-color:#993c1d;color:#993c1d;}
+  .board{
+    display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px;
+  }
+  @media (max-width:900px){ .board{grid-template-columns:1fr;} }
+  .col{
+    background:#efede6; border-radius:12px; padding:10px; min-height:120px;
+    display:flex; flex-direction:column;
+  }
+  .col-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:4px 6px 10px;
+  }
+  .col-title{font-size:13px;font-weight:600;color:var(--ink);}
+  .col-count{
+    font-size:11px; background:#fff; border:1px solid var(--line);
+    padding:1px 8px; border-radius:999px; color:var(--ink-soft);
+  }
+  .dropzone{
+    flex:1; min-height:80px; border-radius:8px; padding:2px;
+    transition:background .15s;
+  }
+  .dropzone.dragover{background:var(--navy-soft);}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:10px 11px; margin-bottom:8px; cursor:grab; user-select:none;
+    box-shadow:0 1px 2px rgba(0,0,0,0.04);
+  }
+  .card:active{cursor:grabbing;}
+  .card.dragging{opacity:.4;}
+  .card-top{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
+  .badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;}
+  .badge-sprint{background:var(--navy-soft);color:var(--navy);}
+  .badge-must{background:var(--must-bg);color:var(--must);}
+  .badge-should{background:var(--should-bg);color:var(--should);}
+  .badge-could{background:var(--could-bg);color:var(--could);}
+  .card-id{font-size:10px;font-weight:600;color:var(--ink-soft);}
+  .card-title{font-size:12.5px;line-height:1.4;color:var(--ink);margin:0 0 4px;}
+  .card-epic{font-size:10.5px;color:var(--ink-soft);}
+  .empty-hint{
+    font-size:11.5px; color:#9a9990; text-align:center; padding:18px 8px;
+  }
+  .progress-wrap{margin-top:1.25rem;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:12px 14px;}
+  .progress-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;}
+  .progress-row:last-child{margin-bottom:0;}
+  .progress-label{width:70px;color:var(--ink-soft);flex-shrink:0;}
+  .progress-track{flex:1;height:8px;background:#eceae3;border-radius:999px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--navy);border-radius:999px;transition:width .3s;}
+  .progress-num{width:46px;text-align:right;color:var(--ink-soft);flex-shrink:0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Suivi backlog — Copilote IA Carrière (V0)</h1>
+    <p class="sub">Glisse-dépose les cartes entre colonnes pour suivre l'avancement. Tableau partagé avec l'équipe.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="toolbar-group" id="sprint-filters">
+      <span class="toolbar-label">Sprint</span>
+    </div>
+    <div class="toolbar-group" id="priority-filters">
+      <span class="toolbar-label">Priorité</span>
+    </div>
+    <div class="spacer"></div>
+    <button class="reset-btn" id="reset-btn">Réinitialiser le tableau</button>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="progress-wrap" id="progress"></div>
+</div>
+
+<script>
+const CARDS = [
+  {id:"US1.1", epic:"Epic 1 — Mémoire professionnelle", title:"Comprendre les données collectées et donner son consentement", sprint:1, priority:"Must"},
+  {id:"US1.2", epic:"Epic 1 — Mémoire professionnelle", title:"Déposer les documents sources (formats multiples)", sprint:1, priority:"Must"},
+  {id:"US1.3", epic:"Epic 1 — Mémoire professionnelle", title:"Voir le statut de chaque document (fourni / à fournir)", sprint:1, priority:"Must"},
+  {id:"US1.4", epic:"Epic 1 — Mémoire professionnelle", title:"Consulter les informations extraites", sprint:1, priority:"Must"},
+  {id:"US1.5", epic:"Epic 1 — Mémoire professionnelle", title:"Corriger ou supprimer une information erronée", sprint:1, priority:"Should"},
+  {id:"US1.6", epic:"Epic 1 — Mémoire professionnelle", title:"Être alerté en cas de doublon ou contradiction", sprint:1, priority:"Should"},
+  {id:"US1.7", epic:"Epic 1 — Mémoire professionnelle", title:"Isolation des données par utilisateur", sprint:1, priority:"Must"},
+
+  {id:"US2.1", epic:"Epic 2 — Analyse de l'offre", title:"Importer/coller une offre d'emploi", sprint:2, priority:"Must"},
+  {id:"US2.2", epic:"Epic 2 — Analyse de l'offre", title:"Voir les correspondances démontrées parcours/offre", sprint:2, priority:"Must"},
+  {id:"US2.3", epic:"Epic 2 — Analyse de l'offre", title:"Identifier les écarts réels et éléments à confirmer", sprint:2, priority:"Must"},
+
+  {id:"US3.1", epic:"Epic 3 — Clarification", title:"Répondre à des questions contextualisées limitées", sprint:2, priority:"Must"},
+  {id:"US3.2", epic:"Epic 3 — Clarification", title:"Interrompre puis reprendre le dialogue de clarification", sprint:2, priority:"Should"},
+  {id:"US3.3", epic:"Epic 3 — Clarification", title:"Socle minimal de questions systématiques", sprint:4, priority:"Could"},
+
+  {id:"US4.1", epic:"Epic 4 — Génération du CV", title:"Générer un contenu de CV structuré, sans invention", sprint:3, priority:"Must"},
+  {id:"US4.2", epic:"Epic 4 — Génération du CV", title:"Prévisualiser et corriger le contenu avant mise en forme", sprint:3, priority:"Must"},
+  {id:"US4.3", epic:"Epic 4 — Génération du CV", title:"Arbitrer la sélection/synthèse si dépassement d'une page", sprint:3, priority:"Must"},
+  {id:"US4.4", epic:"Epic 4 — Génération du CV", title:"Valider explicitement le contenu final", sprint:3, priority:"Must"},
+
+  {id:"US5.1", epic:"Epic 5 — Livrables complémentaires", title:"Générer un message de candidature", sprint:4, priority:"Should"},
+  {id:"US5.2", epic:"Epic 5 — Livrables complémentaires", title:"Générer une lettre de motivation courte et pertinente", sprint:4, priority:"Should"},
+  {id:"US5.3", epic:"Epic 5 — Livrables complémentaires", title:"Générer un pitch synthétique et un pitch déroulé", sprint:4, priority:"Should"},
+  {id:"US5.4", epic:"Epic 5 — Livrables complémentaires", title:"Garantir la cohérence entre tous les livrables", sprint:4, priority:"Could"},
+
+  {id:"US6.1", epic:"Epic 6 — Mise en forme & QC", title:"Mise en forme automatique dans le template unique V0", sprint:3, priority:"Must"},
+  {id:"US6.2", epic:"Epic 6 — Mise en forme & QC", title:"CV tenant sur une page A4, retour si débordement", sprint:3, priority:"Must"},
+  {id:"US6.3", epic:"Epic 6 — Mise en forme & QC", title:"Contrôle de fidélité, absence d'invention, traçabilité", sprint:3, priority:"Must"},
+  {id:"US6.4", epic:"Epic 6 — Mise en forme & QC", title:"Protocole limité de lisibilité technique (ATS)", sprint:4, priority:"Should"},
+  {id:"US6.5", epic:"Epic 6 — Mise en forme & QC", title:"Exporter le CV final validé en PDF", sprint:3, priority:"Must"},
+
+  {id:"US7.1", epic:"Epic 7 — Sécurité & traçabilité", title:"Traçabilité de l'origine de chaque information", sprint:2, priority:"Must"},
+  {id:"US7.2", epic:"Epic 7 — Sécurité & traçabilité", title:"Exporter ou supprimer l'ensemble des données", sprint:4, priority:"Should"},
+
+  {id:"US8.1", epic:"Epic 8 — Tests utilisateurs", title:"Tester le parcours complet avec les 5 membres", sprint:4, priority:"Must"},
+  {id:"US8.2", epic:"Epic 8 — Tests utilisateurs", title:"Ajuster prompts et périmètre suite aux retours", sprint:4, priority:"Must"},
+  {id:"US8.3", epic:"Epic 8 — Tests utilisateurs", title:"Documenter résultats et enseignements", sprint:4, priority:"Should"},
+];
+
+const COLUMNS = ["À faire", "En cours", "En revue", "Terminé"];
+const STORAGE_KEY = "kanban-state-v1";
+
+let state = {};
+CARDS.forEach(c => state[c.id] = "À faire");
+
+let sprintFilter = "Tous";
+let priorityFilter = "Toutes";
+
+async function loadState() {
+  try {
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if (res && res.value) {
+      const saved = JSON.parse(res.value);
+      CARDS.forEach(c => { if (saved[c.id]) state[c.id] = saved[c.id]; });
+    }
+  } catch (e) { /* no saved state yet */ }
+  render();
+}
+
+async function saveState() {
+  try {
+    await window.storage.set(STORAGE_KEY, JSON.stringify(state), true);
+  } catch (e) { console.error("Storage error:", e); }
+}
+
+function buildFilters() {
+  const sprintWrap = document.getElementById("sprint-filters");
+  ["Tous", 1, 2, 3, 4].forEach(s => {
+    const b = document.createElement("button");
+    b.className = "chip" + (s === sprintFilter ? " active" : "");
+    b.textContent = s === "Tous" ? "Tous" : "Sprint " + s;
+    b.onclick = () => { sprintFilter = s; buildFilters(); render(); };
+    sprintWrap.appendChild(b);
+  });
+  const prioWrap = document.getElementById("priority-filters");
+  ["Toutes", "Must", "Should", "Could"].forEach(p => {
+    const b = document.createElement("button");
+    b.className = "chip" + (p === priorityFilter ? " active" : "");
+    b.textContent = p === "Toutes" ? "Toutes" : p;
+    b.onclick = () => { priorityFilter = p; buildFilters(); render(); };
+    prioWrap.appendChild(b);
+  });
+}
+function clearFilters() {
+  document.getElementById("sprint-filters").innerHTML = '<span class="toolbar-label">Sprint</span>';
+  document.getElementById("priority-filters").innerHTML = '<span class="toolbar-label">Priorité</span>';
+}
+
+function badgeClass(p) {
+  if (p === "Must") return "badge-must";
+  if (p === "Should") return "badge-should";
+  return "badge-could";
+}
+
+function filteredCards() {
+  return CARDS.filter(c => {
+    if (sprintFilter !== "Tous" && c.sprint !== sprintFilter) return false;
+    if (priorityFilter !== "Toutes" && c.priority !== priorityFilter) return false;
+    return true;
+  });
+}
+
+function render() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  const cards = filteredCards();
+
+  COLUMNS.forEach(col => {
+    const colCards = cards.filter(c => state[c.id] === col);
+    const colEl = document.createElement("div");
+    colEl.className = "col";
+    colEl.innerHTML = `
+      <div class="col-head">
+        <span class="col-title">${col}</span>
+        <span class="col-count">${colCards.length}</span>
+      </div>
+      <div class="dropzone" data-col="${col}"></div>
+    `;
+    board.appendChild(colEl);
+    const zone = colEl.querySelector(".dropzone");
+
+    if (colCards.length === 0) {
+      zone.innerHTML = '<div class="empty-hint">Aucune carte</div>';
+    } else {
+      colCards.forEach(c => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.draggable = true;
+        card.dataset.id = c.id;
+        card.innerHTML = `
+          <div class="card-top">
+            <span class="card-id">${c.id}</span>
+            <span class="badge badge-sprint">S${c.sprint}</span>
+            <span class="badge ${badgeClass(c.priority)}">${c.priority}</span>
+          </div>
+          <p class="card-title">${c.title}</p>
+          <span class="card-epic">${c.epic}</span>
+        `;
+        card.addEventListener("dragstart", e => {
+          card.classList.add("dragging");
+          e.dataTransfer.setData("text/plain", c.id);
+        });
+        card.addEventListener("dragend", () => card.classList.remove("dragging"));
+        zone.appendChild(card);
+      });
+    }
+
+    zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("dragover"); });
+    zone.addEventListener("dragleave", () => zone.classList.remove("dragover"));
+    zone.addEventListener("drop", e => {
+      e.preventDefault();
+      zone.classList.remove("dragover");
+      const id = e.dataTransfer.getData("text/plain");
+      if (id && state[id] !== undefined) {
+        state[id] = col;
+        saveState();
+        render();
+      }
+    });
+  });
+
+  renderProgress();
+}
+
+function renderProgress() {
+  const wrap = document.getElementById("progress");
+  let rows = "";
+  [1, 2, 3, 4].forEach(s => {
+    const sprintCards = CARDS.filter(c => c.sprint === s);
+    const done = sprintCards.filter(c => state[c.id] === "Terminé").length;
+    const total = sprintCards.length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    rows += `
+      <div class="progress-row">
+        <span class="progress-label">Sprint ${s}</span>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <span class="progress-num">${done}/${total}</span>
+      </div>`;
+  });
+  wrap.innerHTML = rows;
+}
+
+document.getElementById("reset-btn").addEventListener("click", async () => {
+  CARDS.forEach(c => state[c.id] = "À faire");
+  await saveState();
+  render();
+});
+
+buildFilters();
+loadState();
+</script>
+</body>
+</html>
